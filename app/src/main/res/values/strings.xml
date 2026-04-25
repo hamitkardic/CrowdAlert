@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">CrowdAlert</string>
+    <string name="auth_login_title">Sign in</string>
+    <string name="auth_register_title">Create account</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_sign_in">Sign in</string>
+    <string name="auth_create_account">Create account</string>
+    <string name="auth_back">Back</string>
+    <string name="auth_sign_out">Sign out</string>
+    <string name="map_title">Map</string>
+    <string name="map_placeholder">Map and pins will appear here. Incidents: %1$d</string>
+    <string name="report_fab_cd">Report incident</string>
+    <string name="report_title">New report</string>
+    <string name="report_field_title">Title</string>
+    <string name="report_field_type">Type (e.g. FLOOD, OUTAGE, ROAD, OTHER)</string>
+    <string name="report_field_description">Description (optional)</string>
+    <string name="report_location_stub">Location: tie to GPS or map tap in a later step.</string>
+    <string name="report_submit">Submit</string>
 </resources>
