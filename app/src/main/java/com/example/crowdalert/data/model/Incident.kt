@@ -1,9 +1,6 @@
 package com.example.crowdalert.data.model
 
-/**
- * Domain model for a user-reported incident on the map.
- * Firestore field mapping is implemented when integrating with the backend.
- */
+/** Domain model for a user-reported incident on the map. */
 data class Incident(
     val id: String,
     val title: String,
@@ -11,4 +8,6 @@ data class Incident(
     val description: String?,
     val latitude: Double,
     val longitude: Double,
+    /** Millis since epoch from the Firestore `createdAt` field, if present. */
+    val createdAtMillis: Long? = null,
 )

@@ -3,10 +3,7 @@ package com.example.crowdalert.data.repository
 import com.example.crowdalert.data.model.Incident
 import kotlinx.coroutines.flow.Flow
 
-/**
- * Abstraction for observing and writing incidents in Firestore.
- * Real-time [Flow] and snapshot listeners are added with Firebase integration.
- */
+/** Abstraction for observing and writing incidents in Firestore. */
 interface IncidentRepository {
     fun observeIncidents(): Flow<List<Incident>>
 
