@@ -6,7 +6,7 @@ import dagger.hilt.components.SingletonComponent
 
 /**
  * Hilt [Module] for application-scoped dependencies.
- * Firebase clients and repository bindings are added in later steps.
+ * Extra modules (e.g. [FirebaseModule]) hold Firebase clients.
  */
 @Module
 @InstallIn(SingletonComponent::class)

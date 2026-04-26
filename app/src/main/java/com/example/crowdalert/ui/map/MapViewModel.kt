@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * Map screen state: live incident list (from Firestore in a later step) and optional location.
+ * Map screen state: live incident list from Firestore and optional location.
  */
 @HiltViewModel
 class MapViewModel @Inject constructor(
