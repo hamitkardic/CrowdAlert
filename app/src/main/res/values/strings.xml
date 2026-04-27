@@ -9,7 +9,7 @@
     <string name="auth_back">Back</string>
     <string name="auth_sign_out">Sign out</string>
     <string name="map_title">Map</string>
-    <string name="map_placeholder">Map and pins will appear here. Incidents: %1$d</string>
+    <string name="map_live_incident_count">Live incidents: %1$d</string>
     <string name="report_fab_cd">Report incident</string>
     <string name="report_title">New report</string>
     <string name="report_field_title">Title</string>
