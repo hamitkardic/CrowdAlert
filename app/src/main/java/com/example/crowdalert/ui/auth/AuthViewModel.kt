@@ -1,14 +1,18 @@
 package com.example.crowdalert.ui.auth
 
+import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.crowdalert.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -20,31 +24,83 @@ class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
 ) : ViewModel() {
 
+    private val _uiState = MutableStateFlow(AuthUiState())
+    val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
     val isSignedIn: StateFlow<Boolean> =
         authRepository
-            .currentUserId()
+            .currentUser()
             .map { it != null }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), false)
 
-    fun signIn(email: String, password: String, onResult: (Throwable?) -> Unit) {
+    fun signIn(email: String, password: String) {
+        val validationError = validateCredentials(email, password)
+        if (validationError != null) {
+            _uiState.value = AuthUiState(errorMessage = validationError)
+            return
+        }
+
         viewModelScope.launch {
+            _uiState.value = AuthUiState(isLoading = true)
             authRepository
-                .signIn(email, password)
-                .onSuccess { onResult(null) }
-                .onFailure { onResult(it) }
+                .signIn(email.trim(), password)
+                .fold(
+                    onSuccess = { _uiState.value = AuthUiState() },
+                    onFailure = { error ->
+                        _uiState.value = AuthUiState(errorMessage = error.toUserMessage())
+                    },
+                )
         }
     }
 
-    fun signUp(email: String, password: String, onResult: (Throwable?) -> Unit) {
-        viewModelScope.launch {
-            authRepository
-                .signUp(email, password)
-                .onSuccess { onResult(null) }
-                .onFailure { onResult(it) }
+    fun signUp(email: String, password: String) {
+        val validationError = validateCredentials(email, password)
+        if (validationError != null) {
+            _uiState.value = AuthUiState(errorMessage = validationError)
+            return
         }
+
+        viewModelScope.launch {
+            _uiState.value = AuthUiState(isLoading = true)
+            authRepository
+                .signUp(email.trim(), password)
+                .fold(
+                    onSuccess = { _uiState.value = AuthUiState() },
+                    onFailure = { error ->
+                        _uiState.value = AuthUiState(errorMessage = error.toUserMessage())
+                    },
+                )
+        }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 
     fun signOut() {
         viewModelScope.launch { authRepository.signOut() }
+    }
+
+    private fun validateCredentials(email: String, password: String): String? {
+        val trimmedEmail = email.trim()
+        return when {
+            trimmedEmail.isBlank() -> "Enter an email address."
+            !Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches() -> "Enter a valid email address."
+            password.isBlank() -> "Enter a password."
+            password.length < MIN_PASSWORD_LENGTH -> "Password must be at least $MIN_PASSWORD_LENGTH characters."
+            else -> null
+        }
+    }
+
+    private fun Throwable.toUserMessage(): String =
+        localizedMessage?.takeIf { it.isNotBlank() } ?: "Authentication failed. Please try again."
+
+    data class AuthUiState(
+        val isLoading: Boolean = false,
+        val errorMessage: String? = null,
+    )
+
+    private companion object {
+        const val MIN_PASSWORD_LENGTH = 6
     }
 }
