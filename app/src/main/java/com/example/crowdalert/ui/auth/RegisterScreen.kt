@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -17,20 +21,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.crowdalert.R
 
 /**
- * Placeholder registration form; constraints and Firebase errors are added in the auth step.
+ * Email/password registration form. Firebase remains the sole password verifier.
  */
 @Composable
 fun RegisterRoute(
     onNavigateBack: () -> Unit,
-    onRegistered: () -> Unit,
     viewModel: AuthViewModel,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -41,29 +48,55 @@ fun RegisterRoute(
         Text(text = stringResource(R.string.auth_register_title))
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                email = it
+                viewModel.clearError()
+            },
             label = { Text(stringResource(R.string.auth_email)) },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+            ),
             singleLine = true,
+            enabled = !uiState.isLoading,
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                viewModel.clearError()
+            },
             label = { Text(stringResource(R.string.auth_password)) },
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+            ),
             singleLine = true,
+            enabled = !uiState.isLoading,
             modifier = Modifier.fillMaxWidth(),
         )
+        uiState.errorMessage?.let { message ->
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         Button(
-            onClick = {
-                viewModel.signUp(email, password) { error ->
-                    if (error == null) onRegistered()
-                }
-            },
+            onClick = { viewModel.signUp(email, password) },
+            enabled = !uiState.isLoading,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(stringResource(R.string.auth_create_account))
+            if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+            } else {
+                Text(stringResource(R.string.auth_create_account))
+            }
         }
-        TextButton(onClick = onNavigateBack) {
+        TextButton(
+            onClick = onNavigateBack,
+            enabled = !uiState.isLoading,
+        ) {
             Text(stringResource(R.string.auth_back))
         }
     }

@@ -1,11 +1,13 @@
 package com.example.crowdalert.ui.navigation
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -27,9 +29,29 @@ fun CrowdAlertNavHost(
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
     val isSignedIn by authViewModel.isSignedIn.collectAsStateWithLifecycle()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
 
     val start =
         if (isSignedIn) CrowdAlertRoute.Map.route else CrowdAlertRoute.Login.route
+
+    LaunchedEffect(isSignedIn, currentRoute) {
+        when {
+            isSignedIn && currentRoute in authRoutes -> {
+                navController.navigate(CrowdAlertRoute.Map.route) {
+                    popUpTo(CrowdAlertRoute.Login.route) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+
+            !isSignedIn && currentRoute in mainRoutes -> {
+                navController.navigate(CrowdAlertRoute.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -40,22 +62,12 @@ fun CrowdAlertNavHost(
             LoginRoute(
                 viewModel = authViewModel,
                 onNavigateToRegister = { navController.navigate(CrowdAlertRoute.Register.route) },
-                onSignedIn = {
-                    navController.navigate(CrowdAlertRoute.Map.route) {
-                        popUpTo(CrowdAlertRoute.Login.route) { inclusive = true }
-                    }
-                },
             )
         }
         composable(CrowdAlertRoute.Register.route) {
             RegisterRoute(
                 viewModel = authViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onRegistered = {
-                    navController.navigate(CrowdAlertRoute.Map.route) {
-                        popUpTo(CrowdAlertRoute.Login.route) { inclusive = true }
-                    }
-                },
             )
         }
         composable(CrowdAlertRoute.Map.route) {
@@ -80,3 +92,15 @@ fun CrowdAlertNavHost(
         }
     }
 }
+
+private val authRoutes =
+    setOf(
+        CrowdAlertRoute.Login.route,
+        CrowdAlertRoute.Register.route,
+    )
+
+private val mainRoutes =
+    setOf(
+        CrowdAlertRoute.Map.route,
+        CrowdAlertRoute.Report.route,
+    )
