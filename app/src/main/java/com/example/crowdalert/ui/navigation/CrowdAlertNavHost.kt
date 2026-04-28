@@ -6,10 +6,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.crowdalert.ui.auth.AuthViewModel
 import com.example.crowdalert.ui.auth.LoginRoute
@@ -46,7 +47,9 @@ fun CrowdAlertNavHost(
 
             !isSignedIn && currentRoute in mainRoutes -> {
                 navController.navigate(CrowdAlertRoute.Login.route) {
-                    popUpTo(0) { inclusive = true }
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        inclusive = true
+                    }
                     launchSingleTop = true
                 }
             }
@@ -75,12 +78,7 @@ fun CrowdAlertNavHost(
             MapRoute(
                 viewModel = mapViewModel,
                 onOpenReport = { navController.navigate(CrowdAlertRoute.Report.route) },
-                onSignOut = {
-                    authViewModel.signOut()
-                    navController.navigate(CrowdAlertRoute.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
+                onSignOut = { authViewModel.signOut() },
             )
         }
         composable(CrowdAlertRoute.Report.route) {

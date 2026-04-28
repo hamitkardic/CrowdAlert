@@ -5,74 +5,132 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.crowdalert.R
+import com.example.crowdalert.ui.report.ReportViewModel.IncidentType
+import com.example.crowdalert.ui.report.ReportViewModel.SubmitState
 
 /**
- * Placeholder report form: incident type and map-driven location are expanded later.
+ * Report form for creating Firestore incident documents.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportRoute(
     viewModel: ReportViewModel,
     onSubmitted: () -> Unit,
 ) {
-    var title by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableStateOf("OTHER") }
-    var description by rememberSaveable { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val submitState by viewModel.submitState.collectAsStateWithLifecycle()
+    val isSubmitting = submitState is SubmitState.Submitting
+    val errorMessage =
+        uiState.validationMessage
+            ?: (submitState as? SubmitState.Error)?.message
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
     ) {
         Text(text = stringResource(R.string.report_title))
         OutlinedTextField(
-            value = title,
-            onValueChange = { title = it },
+            value = uiState.title,
+            onValueChange = viewModel::onTitleChange,
             label = { Text(stringResource(R.string.report_field_title)) },
             singleLine = true,
+            enabled = !isSubmitting,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
-            value = type,
-            onValueChange = { type = it },
-            label = { Text(stringResource(R.string.report_field_type)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+        Text(
+            text = stringResource(R.string.report_field_type),
+            style = MaterialTheme.typography.labelLarge,
         )
-        OutlinedTextField(
-            value = description,
-            onValueChange = { description = it },
-            label = { Text(stringResource(R.string.report_field_description)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(text = stringResource(R.string.report_location_stub))
-        Button(
-            onClick = {
-                viewModel.submit(
-                    title = title,
-                    type = type,
-                    description = description.ifBlank { null },
-                    latitude = 0.0,
-                    longitude = 0.0,
-                    onDone = onSubmitted,
-                )
-            },
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(stringResource(R.string.report_submit))
+            IncidentType.entries.forEach { type ->
+                FilterChip(
+                    selected = uiState.type == type,
+                    onClick = { viewModel.onTypeChange(type) },
+                    label = { Text(type.label()) },
+                    enabled = !isSubmitting,
+                )
+            }
+        }
+        OutlinedTextField(
+            value = uiState.latitude,
+            onValueChange = viewModel::onLatitudeChange,
+            label = { Text(stringResource(R.string.report_field_latitude)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            singleLine = true,
+            enabled = !isSubmitting,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = uiState.longitude,
+            onValueChange = viewModel::onLongitudeChange,
+            label = { Text(stringResource(R.string.report_field_longitude)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            singleLine = true,
+            enabled = !isSubmitting,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = uiState.description,
+            onValueChange = viewModel::onDescriptionChange,
+            label = { Text(stringResource(R.string.report_field_description)) },
+            enabled = !isSubmitting,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = stringResource(R.string.report_location_note),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        errorMessage?.let { message ->
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        Button(
+            onClick = { viewModel.submit(onSubmitted) },
+            enabled = !isSubmitting,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (isSubmitting) {
+                CircularProgressIndicator()
+            } else {
+                Text(stringResource(R.string.report_submit))
+            }
         }
     }
 }
+
+@Composable
+private fun IncidentType.label(): String =
+    when (this) {
+        IncidentType.RoadHazard -> stringResource(R.string.report_type_road_hazard)
+        IncidentType.Outage -> stringResource(R.string.report_type_outage)
+        IncidentType.Flood -> stringResource(R.string.report_type_flood)
+        IncidentType.Other -> stringResource(R.string.report_type_other)
+    }
