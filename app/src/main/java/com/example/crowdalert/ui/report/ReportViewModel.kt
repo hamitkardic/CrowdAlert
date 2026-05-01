@@ -41,26 +41,26 @@ class ReportViewModel @Inject constructor(
         _uiState.update { it.copy(description = value) }
     }
 
-    fun onLatitudeChange(value: String) {
+    fun onLocationSelected(latitude: Double, longitude: Double) {
         clearMessages()
-        _uiState.update { it.copy(latitude = value) }
+        _uiState.update {
+            it.copy(
+                latitude = latitude.coerceIn(LATITUDE_RANGE),
+                longitude = longitude.coerceIn(LONGITUDE_RANGE),
+            )
+        }
     }
 
-    fun onLongitudeChange(value: String) {
-        clearMessages()
-        _uiState.update { it.copy(longitude = value) }
+    fun onAddressResolved(value: String) {
+        _uiState.update { it.copy(addressLabel = value) }
     }
 
     fun submit(onDone: () -> Unit) {
         val form = _uiState.value
         val title = form.title.trim()
-        val latitude = form.latitude.toDoubleOrNull()
-        val longitude = form.longitude.toDoubleOrNull()
         val validationMessage =
             when {
                 title.isBlank() -> "Enter a title for the incident."
-                latitude == null || latitude !in LATITUDE_RANGE -> "Enter a latitude between -90 and 90."
-                longitude == null || longitude !in LONGITUDE_RANGE -> "Enter a longitude between -180 and 180."
                 else -> null
             }
 
@@ -68,9 +68,6 @@ class ReportViewModel @Inject constructor(
             _uiState.update { it.copy(validationMessage = validationMessage) }
             return
         }
-
-        val validLatitude = latitude ?: return
-        val validLongitude = longitude ?: return
 
         viewModelScope.launch {
             _submitState.value = SubmitState.Submitting
@@ -80,8 +77,8 @@ class ReportViewModel @Inject constructor(
                         title = title,
                         type = form.type.firestoreValue,
                         description = form.description.trim().ifBlank { null },
-                        latitude = validLatitude,
-                        longitude = validLongitude,
+                        latitude = form.latitude,
+                        longitude = form.longitude,
                     ),
                 )
             result.fold(
@@ -116,8 +113,9 @@ class ReportViewModel @Inject constructor(
         val title: String = "",
         val type: IncidentType = IncidentType.Other,
         val description: String = "",
-        val latitude: String = DEFAULT_LATITUDE,
-        val longitude: String = DEFAULT_LONGITUDE,
+        val latitude: Double = DEFAULT_LATITUDE,
+        val longitude: Double = DEFAULT_LONGITUDE,
+        val addressLabel: String = "",
         val validationMessage: String? = null,
     )
 
@@ -129,8 +127,8 @@ class ReportViewModel @Inject constructor(
     }
 
     private companion object {
-        const val DEFAULT_LATITUDE = "41.0082"
-        const val DEFAULT_LONGITUDE = "28.9784"
+        const val DEFAULT_LATITUDE = 41.0082
+        const val DEFAULT_LONGITUDE = 28.9784
         val LATITUDE_RANGE = -90.0..90.0
         val LONGITUDE_RANGE = -180.0..180.0
     }
