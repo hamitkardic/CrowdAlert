@@ -1,17 +1,23 @@
 package com.example.crowdalert.ui.report
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -35,6 +41,7 @@ import com.example.crowdalert.ui.report.ReportViewModel.SubmitState
 fun ReportRoute(
     viewModel: ReportViewModel,
     onSubmitted: () -> Unit,
+    onBackToMap: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val submitState by viewModel.submitState.collectAsStateWithLifecycle()
@@ -50,6 +57,19 @@ fun ReportRoute(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
     ) {
+        IconButton(
+            onClick = onBackToMap,
+            enabled = !isSubmitting,
+            modifier = Modifier.background(
+                MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(16.dp),
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = stringResource(R.string.report_back_to_map),
+            )
+        }
         Text(text = stringResource(R.string.report_title))
         OutlinedTextField(
             value = uiState.title,

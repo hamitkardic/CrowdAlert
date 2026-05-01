@@ -22,5 +22,10 @@
     <string name="report_field_longitude">Longitude</string>
     <string name="report_field_description">Description (optional)</string>
     <string name="report_location_note">For the demo, enter the incident coordinates manually. These values are stored on the Firestore incident document.</string>
+    <string name="report_back_to_map">Back to map</string>
     <string name="report_submit">Submit</string>
+    <string name="notification_channel_name">Crowd alerts</string>
+    <string name="notification_channel_description">Urgent nearby incident alerts and demo broadcasts.</string>
+    <string name="notification_fallback_title">CrowdAlert update</string>
+    <string name="notification_fallback_body">A new alert is available.</string>
 </resources>

@@ -86,6 +86,17 @@ fun CrowdAlertNavHost(
             ReportRoute(
                 viewModel = reportViewModel,
                 onSubmitted = { navController.popBackStack() },
+                onBackToMap = {
+                    val returnedToMap = navController.popBackStack(CrowdAlertRoute.Map.route, false)
+                    if (!returnedToMap) {
+                        navController.navigate(CrowdAlertRoute.Map.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                },
             )
         }
     }
