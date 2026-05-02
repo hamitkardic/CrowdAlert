@@ -77,8 +77,12 @@ class AuthViewModel @Inject constructor(
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    fun signOut() {
-        viewModelScope.launch { authRepository.signOut() }
+    fun signOut(onSignedOut: () -> Unit = {}) {
+        viewModelScope.launch {
+            authRepository.signOut()
+            _uiState.value = AuthUiState()
+            onSignedOut()
+        }
     }
 
     private fun validateCredentials(email: String, password: String): String? {

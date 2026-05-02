@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,65 +40,85 @@ fun RegisterRoute(
     var password by rememberSaveable { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(
+    Surface(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+            .fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
-        Text(text = stringResource(R.string.auth_register_title))
-        OutlinedTextField(
-            value = email,
-            onValueChange = {
-                email = it
-                viewModel.clearError()
-            },
-            label = { Text(stringResource(R.string.auth_email)) },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-            ),
-            singleLine = true,
-            enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = password,
-            onValueChange = {
-                password = it
-                viewModel.clearError()
-            },
-            label = { Text(stringResource(R.string.auth_password)) },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-            ),
-            singleLine = true,
-            enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        uiState.errorMessage?.let { message ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        ) {
             Text(
-                text = message,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
+                text = stringResource(R.string.auth_register_title),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
             )
-        }
-        Button(
-            onClick = { viewModel.signUp(email, password) },
-            enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp))
-            } else {
-                Text(stringResource(R.string.auth_create_account))
+            OutlinedTextField(
+                value = email,
+                onValueChange = {
+                    email = it
+                    viewModel.clearError()
+                },
+                label = { Text(stringResource(R.string.auth_email)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                ),
+                singleLine = true,
+                enabled = !uiState.isLoading,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = password,
+                onValueChange = {
+                    password = it
+                    viewModel.clearError()
+                },
+                label = { Text(stringResource(R.string.auth_password)) },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                ),
+                singleLine = true,
+                enabled = !uiState.isLoading,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            uiState.errorMessage?.let { message ->
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
-        }
-        TextButton(
-            onClick = onNavigateBack,
-            enabled = !uiState.isLoading,
-        ) {
-            Text(stringResource(R.string.auth_back))
+            Button(
+                onClick = { viewModel.signUp(email, password) },
+                enabled = !uiState.isLoading,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.auth_create_account),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+            TextButton(
+                onClick = onNavigateBack,
+                enabled = !uiState.isLoading,
+            ) {
+                Text(
+                    text = stringResource(R.string.auth_back),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }

@@ -17,10 +17,7 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
 /**
- * Receives FCM foreground messages and displays them on the demo notification channel.
- *
- * Android may deliver notification payloads directly to the system tray while the app is
- * backgrounded; this service is mainly for foreground messages and data payload handling.
+  This service is mainly for foreground messages and data payload handling.
  */
 class CrowdAlertMessagingService : FirebaseMessagingService() {
 
@@ -65,7 +62,12 @@ class CrowdAlertMessagingService : FirebaseMessagingService() {
                 .setAutoCancel(true)
                 .build()
 
-        NotificationManagerCompat.from(this).notify(System.currentTimeMillis().toInt(), notification)
+        try {
+            NotificationManagerCompat.from(this)
+                .notify(System.currentTimeMillis().toInt(), notification)
+        } catch (e: SecurityException) {
+            // Permission might be revoked at runtime, safely ignore or log if needed
+        }
     }
 
     private fun ensureNotificationChannel() {

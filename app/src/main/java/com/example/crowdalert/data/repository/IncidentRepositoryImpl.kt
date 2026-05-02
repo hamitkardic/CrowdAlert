@@ -2,6 +2,7 @@ package com.example.crowdalert.data.repository
 
 import com.example.crowdalert.data.model.Incident
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -24,7 +25,8 @@ class IncidentRepositoryImpl @Inject constructor(
                 .collection(COLLECTION_INCIDENTS)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
-                        close(error)
+                        trySend(emptyList())
+                        close()
                         return@addSnapshotListener
                     }
                     if (snapshot == null) {
@@ -54,18 +56,60 @@ class IncidentRepositoryImpl @Inject constructor(
             ref.id
         }
 
+    override suspend fun deleteIncidents(ids: Collection<String>): Result<Unit> =
+        runCatching {
+            val currentUid = firebaseAuth.currentUser?.uid ?: error("You must be signed in.")
+            ids
+                .distinct()
+                .forEach { id ->
+                    val ref = firestore.collection(COLLECTION_INCIDENTS).document(id)
+                    val snapshot = ref.get().await()
+                    snapshot.requireOwnedBy(currentUid)
+                    ref.delete().await()
+                }
+        }
+
+    override suspend fun updateIncident(
+        id: String,
+        update: IncidentUpdate,
+    ): Result<Unit> =
+        runCatching {
+            val currentUid = firebaseAuth.currentUser?.uid ?: error("You must be signed in.")
+            val ref = firestore.collection(COLLECTION_INCIDENTS).document(id)
+            val snapshot = ref.get().await()
+            snapshot.requireOwnedBy(currentUid)
+            ref
+                .update(
+                    mapOf(
+                        "title" to update.title,
+                        "type" to update.type,
+                        "severity" to update.severity,
+                        "description" to update.description,
+                    ),
+                ).await()
+        }
+
     private companion object {
         const val COLLECTION_INCIDENTS = "incidents"
     }
 }
 
-private fun com.google.firebase.firestore.DocumentSnapshot.toIncidentOrNull(): Incident? {
+private fun DocumentSnapshot.requireOwnedBy(currentUid: String) {
+    if (!exists()) error("Incident does not exist.")
+    val ownerId = getString("reporterId") ?: getString("reportedBy")
+    check(ownerId == currentUid) {
+        "You can only manage incidents you reported."
+    }
+}
+
+private fun DocumentSnapshot.toIncidentOrNull(): Incident? {
     val t = getString("title") ?: return null
     val ty = getString("type") ?: return null
     val desc = getString("description")
     val lat = (get("latitude") as? Number)?.toDouble() ?: return null
     val lon = (get("longitude") as? Number)?.toDouble() ?: return null
-    val reporterId = getString("reporterId")
+    val severity = getString("severity")
+    val reporterId = getString("reporterId") ?: getString("reportedBy")
     val created = getTimestamp("createdAt")?.toDate()?.time
     return Incident(
         id = id,
@@ -74,6 +118,7 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toIncidentOrNull(): I
         description = desc,
         latitude = lat,
         longitude = lon,
+        severity = severity,
         reporterId = reporterId,
         createdAtMillis = created,
     )
