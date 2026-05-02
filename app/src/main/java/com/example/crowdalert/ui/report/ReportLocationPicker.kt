@@ -29,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -38,6 +37,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.material3.MaterialTheme
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -133,7 +133,7 @@ fun ReportLocationPicker(
                 mapView.apply {
                     getMapAsync { mapLibreMap ->
                         map = mapLibreMap
-                        mapLibreMap.setStyle(Style.Builder().fromUri(OPEN_FREE_MAP_STYLE))
+                        mapLibreMap.setStyle(Style.Builder().fromUri(MAP_STYLE_URL))
                         mapLibreMap.cameraPosition =
                             CameraPosition.Builder()
                                 .target(selectedLocation)
@@ -159,8 +159,8 @@ fun ReportLocationPicker(
                 .align(Alignment.TopStart)
                 .size(pinSize)
                 .offsetToPin(pinOffset, pinSizePx)
-                .background(Color(0xFFE53935), CircleShape)
-                .border(3.dp, Color.White, CircleShape)
+                .background(MaterialTheme.colorScheme.error, CircleShape)
+                .border(3.dp, MaterialTheme.colorScheme.onError, CircleShape)
                 .pointerInput(enabled, map, mapSize) {
                     if (!enabled) return@pointerInput
                     detectDragGestures(
@@ -252,5 +252,5 @@ private fun Address.toReadableAddress(): String? =
             countryName,
         ).distinct().joinToString(", ").takeIf { it.isNotBlank() }
 
-private const val OPEN_FREE_MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty"
+private const val MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
 private const val REPORT_PICKER_ZOOM = 15.0

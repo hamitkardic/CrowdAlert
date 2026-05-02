@@ -8,6 +8,13 @@ interface IncidentRepository {
     fun observeIncidents(): Flow<List<Incident>>
 
     suspend fun reportIncident(incident: NewIncident): Result<String>
+
+    suspend fun deleteIncidents(ids: Collection<String>): Result<Unit>
+
+    suspend fun updateIncident(
+        id: String,
+        update: IncidentUpdate,
+    ): Result<Unit>
 }
 
 /**
@@ -19,4 +26,11 @@ data class NewIncident(
     val description: String?,
     val latitude: Double,
     val longitude: Double,
+)
+
+data class IncidentUpdate(
+    val title: String,
+    val type: String,
+    val severity: String?,
+    val description: String?,
 )

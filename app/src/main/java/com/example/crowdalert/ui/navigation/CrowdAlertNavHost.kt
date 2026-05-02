@@ -3,6 +3,7 @@ package com.example.crowdalert.ui.navigation
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -15,6 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.crowdalert.ui.auth.AuthViewModel
 import com.example.crowdalert.ui.auth.LoginRoute
 import com.example.crowdalert.ui.auth.RegisterRoute
+import com.example.crowdalert.ui.incidents.IncidentsListRoute
 import com.example.crowdalert.ui.map.MapRoute
 import com.example.crowdalert.ui.map.MapViewModel
 import com.example.crowdalert.ui.report.ReportRoute
@@ -47,9 +49,7 @@ fun CrowdAlertNavHost(
 
             !isSignedIn && currentRoute in mainRoutes -> {
                 navController.navigate(CrowdAlertRoute.Login.route) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        inclusive = true
-                    }
+                    popUpTo(0) { inclusive = true }
                     launchSingleTop = true
                 }
             }
@@ -78,7 +78,31 @@ fun CrowdAlertNavHost(
             MapRoute(
                 viewModel = mapViewModel,
                 onOpenReport = { navController.navigate(CrowdAlertRoute.Report.route) },
-                onSignOut = { authViewModel.signOut() },
+                onOpenIncidents = { navController.navigate(CrowdAlertRoute.IncidentsList.route) },
+                onSignOut = {
+                    mapViewModel.onSignedOut()
+                    authViewModel.signOut {
+                        navController.navigate("signin") {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+            )
+        }
+        composable(CrowdAlertRoute.IncidentsList.route) {
+            val mapBackStackEntry =
+                remember(navController) {
+                    navController.getBackStackEntry(CrowdAlertRoute.Map.route)
+                }
+            val mapViewModel: MapViewModel = hiltViewModel(mapBackStackEntry)
+            IncidentsListRoute(
+                viewModel = mapViewModel,
+                onBack = { navController.popBackStack() },
+                onIncidentSelected = { incident ->
+                    mapViewModel.focusIncident(incident)
+                    navController.popBackStack()
+                },
             )
         }
         composable(CrowdAlertRoute.Report.route) {
@@ -111,5 +135,6 @@ private val authRoutes =
 private val mainRoutes =
     setOf(
         CrowdAlertRoute.Map.route,
+        CrowdAlertRoute.IncidentsList.route,
         CrowdAlertRoute.Report.route,
     )

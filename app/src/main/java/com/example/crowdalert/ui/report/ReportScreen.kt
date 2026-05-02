@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -101,108 +103,125 @@ fun ReportRoute(
         isPickerOpen = false
     }
 
-    Box(
+    Surface(
         modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
+        Box(
+            modifier = Modifier.fillMaxSize(),
         ) {
-            IconButton(
-                onClick = onBackToMap,
-                enabled = !isSubmitting,
-                modifier = Modifier.background(
-                    MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(16.dp),
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = stringResource(R.string.report_back_to_map),
-                )
-            }
-            Text(text = stringResource(R.string.report_title))
-            OutlinedTextField(
-                value = uiState.title,
-                onValueChange = viewModel::onTitleChange,
-                label = { Text(stringResource(R.string.report_field_title)) },
-                singleLine = true,
-                enabled = !isSubmitting,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                text = stringResource(R.string.report_field_type),
-                style = MaterialTheme.typography.labelLarge,
-            )
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
             ) {
-                IncidentType.entries.forEach { type ->
-                    FilterChip(
-                        selected = uiState.type == type,
-                        onClick = { viewModel.onTypeChange(type) },
-                        label = { Text(type.label()) },
-                        enabled = !isSubmitting,
+                IconButton(
+                    onClick = onBackToMap,
+                    enabled = !isSubmitting,
+                    modifier = Modifier.background(
+                        MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = stringResource(R.string.report_back_to_map),
+                        tint = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
-            }
-            LocationPreviewCard(
-                address = uiState.addressLabel,
-                enabled = !isSubmitting,
-                onChooseLocation = {
-                    draftLatitude = uiState.latitude
-                    draftLongitude = uiState.longitude
-                    draftAddress = uiState.addressLabel
-                    isPickerOpen = true
-                },
-            )
-            errorMessage?.let { message ->
                 Text(
-                    text = message,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = stringResource(R.string.report_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
-            }
-            OutlinedTextField(
-                value = uiState.description,
-                onValueChange = viewModel::onDescriptionChange,
-                label = { Text(stringResource(R.string.report_field_description)) },
-                enabled = !isSubmitting,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Button(
-                onClick = { viewModel.submit(onSubmitted) },
-                enabled = !isSubmitting,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (isSubmitting) {
-                    CircularProgressIndicator()
-                } else {
-                    Text(stringResource(R.string.report_submit))
+                OutlinedTextField(
+                    value = uiState.title,
+                    onValueChange = viewModel::onTitleChange,
+                    label = { Text(stringResource(R.string.report_field_title)) },
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.report_field_type),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    IncidentType.entries.forEach { type ->
+                        FilterChip(
+                            selected = uiState.type == type,
+                            onClick = { viewModel.onTypeChange(type) },
+                            label = { Text(type.label()) },
+                            enabled = !isSubmitting,
+                        )
+                    }
+                }
+                LocationPreviewCard(
+                    address = uiState.addressLabel,
+                    enabled = !isSubmitting,
+                    onChooseLocation = {
+                        draftLatitude = uiState.latitude
+                        draftLongitude = uiState.longitude
+                        draftAddress = uiState.addressLabel
+                        isPickerOpen = true
+                    },
+                )
+                errorMessage?.let { message ->
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                OutlinedTextField(
+                    value = uiState.description,
+                    onValueChange = viewModel::onDescriptionChange,
+                    label = { Text(stringResource(R.string.report_field_description)) },
+                    enabled = !isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(
+                    onClick = { viewModel.submit(onSubmitted) },
+                    enabled = !isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.report_submit),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
                 }
             }
-        }
 
-        if (isPickerOpen) {
-            FullscreenLocationPicker(
-                latitude = draftLatitude,
-                longitude = draftLongitude,
-                address = draftAddress,
-                onLocationSelected = { latitude, longitude ->
-                    draftLatitude = latitude
-                    draftLongitude = longitude
-                },
-                onCancel = { isPickerOpen = false },
-                onConfirm = {
-                    viewModel.onLocationSelected(draftLatitude, draftLongitude)
-                    viewModel.onAddressResolved(draftAddress)
-                    isPickerOpen = false
-                },
-            )
+            if (isPickerOpen) {
+                FullscreenLocationPicker(
+                    latitude = draftLatitude,
+                    longitude = draftLongitude,
+                    address = draftAddress,
+                    onLocationSelected = { latitude, longitude ->
+                        draftLatitude = latitude
+                        draftLongitude = longitude
+                    },
+                    onCancel = { isPickerOpen = false },
+                    onConfirm = {
+                        viewModel.onLocationSelected(draftLatitude, draftLongitude)
+                        viewModel.onAddressResolved(draftAddress)
+                        isPickerOpen = false
+                    },
+                )
+            }
         }
     }
 }
@@ -217,6 +236,7 @@ private fun LocationPreviewCard(
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -227,17 +247,22 @@ private fun LocationPreviewCard(
             Text(
                 text = stringResource(R.string.report_location_label),
                 style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = address.ifBlank { stringResource(R.string.report_location_not_selected) },
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Button(
                 onClick = onChooseLocation,
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.report_choose_location))
+                Text(
+                    text = stringResource(R.string.report_choose_location),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
             }
         }
     }
@@ -252,68 +277,85 @@ private fun FullscreenLocationPicker(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
-        ReportLocationPicker(
-            latitude = latitude,
-            longitude = longitude,
-            enabled = true,
-            onLocationSelected = onLocationSelected,
+        Box(
             modifier = Modifier.fillMaxSize(),
-        )
-        IconButton(
-            onClick = onCancel,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 25.dp, start = 16.dp)
-                .background(
-                    MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(16.dp),
-                ),
         ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = stringResource(R.string.report_cancel_location),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            ReportLocationPicker(
+                latitude = latitude,
+                longitude = longitude,
+                enabled = true,
+                onLocationSelected = onLocationSelected,
+                modifier = Modifier.fillMaxSize(),
             )
-        }
-        Card(
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                ),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            IconButton(
+                onClick = onCancel,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 25.dp, start = 16.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(16.dp),
+                    ),
             ) {
-                Text(
-                    text = stringResource(R.string.report_location_label),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                Text(
-                    text = address.ifBlank { stringResource(R.string.report_address_resolving) },
-                    style = MaterialTheme.typography.bodyMedium,
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.report_cancel_location),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
-        }
-        FloatingActionButton(
-            onClick = onConfirm,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 127.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = stringResource(R.string.report_confirm_location),
-            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(16.dp),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Card(
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.report_location_label),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = address.ifBlank { stringResource(R.string.report_address_resolving) },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    FloatingActionButton(
+                        onClick = onConfirm,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = stringResource(R.string.report_confirm_location),
+                        )
+                    }
+                }
+            }
         }
     }
 }

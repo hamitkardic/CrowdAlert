@@ -19,7 +19,6 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-            // If the user declines, FCM token delivery still works; local display is skipped.
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
