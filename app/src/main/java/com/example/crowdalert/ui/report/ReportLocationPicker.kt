@@ -211,7 +211,7 @@ fun Context.lastKnownIncidentLocation(): Pair<Double, Double>? {
             PackageManager.PERMISSION_GRANTED
     if (!hasFineLocation && !hasCoarseLocation) return null
 
-    val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    val manager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
     return runCatching {
         val providers =
             listOf(

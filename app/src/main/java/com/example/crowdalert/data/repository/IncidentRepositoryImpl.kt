@@ -46,6 +46,7 @@ class IncidentRepositoryImpl @Inject constructor(
                 hashMapOf(
                     "title" to incident.title,
                     "type" to incident.type,
+                    "severity" to incident.severity,
                     "description" to incident.description,
                     "latitude" to incident.latitude,
                     "longitude" to incident.longitude,
