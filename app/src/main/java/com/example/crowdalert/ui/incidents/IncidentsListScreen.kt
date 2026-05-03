@@ -129,7 +129,7 @@ fun IncidentsListRoute(
                                             R.string.incidents_manage
                                         },
                                     ),
-                                color = MaterialTheme.colorScheme.error,
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                     }
@@ -404,6 +404,17 @@ private fun ManageActionsBar(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Button(
+            onClick = onEdit,
+            enabled = hasSelection,
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(stringResource(R.string.incidents_edit))
+        }
+            Button(
                 onClick = onDelete,
                 enabled = hasSelection,
                 colors =
@@ -414,17 +425,7 @@ private fun ManageActionsBar(
             ) {
                 Text(stringResource(R.string.incidents_delete))
             }
-            Button(
-                onClick = onEdit,
-                enabled = hasSelection,
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFF9800),
-                    ),
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(stringResource(R.string.incidents_edit))
-            }
+
         }
     }
 }

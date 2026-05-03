@@ -36,6 +36,11 @@ class ReportViewModel @Inject constructor(
         _uiState.update { it.copy(type = value) }
     }
 
+    fun onSeverityChange(value: Severity) {
+        clearMessages()
+        _uiState.update { it.copy(severity = value) }
+    }
+
     fun onDescriptionChange(value: String) {
         clearMessages()
         _uiState.update { it.copy(description = value) }
@@ -76,6 +81,7 @@ class ReportViewModel @Inject constructor(
                     NewIncident(
                         title = title,
                         type = form.type.firestoreValue,
+                        severity = form.severity.firestoreValue,
                         description = form.description.trim().ifBlank { null },
                         latitude = form.latitude,
                         longitude = form.longitude,
@@ -112,6 +118,7 @@ class ReportViewModel @Inject constructor(
     data class ReportUiState(
         val title: String = "",
         val type: IncidentType = IncidentType.Other,
+        val severity: Severity = Severity.Unspecified,
         val description: String = "",
         val latitude: Double = DEFAULT_LATITUDE,
         val longitude: Double = DEFAULT_LONGITUDE,
@@ -121,9 +128,23 @@ class ReportViewModel @Inject constructor(
 
     enum class IncidentType(val firestoreValue: String) {
         RoadHazard("ROAD_HAZARD"),
-        Outage("OUTAGE"),
         Flood("FLOOD"),
+        Fight("FIGHT"),
+        Medical("MEDICAL"),
+        Suspicious("SUSPICIOUS"),
+        CrowdSurge("CROWD_SURGE"),
+        Theft("THEFT"),
+        Fire("FIRE"),
+        Harassment("HARASSMENT"),
         Other("OTHER"),
+    }
+
+    enum class Severity(val firestoreValue: String?) {
+        Low("LOW"),
+        Medium("MEDIUM"),
+        High("HIGH"),
+        Critical("CRITICAL"),
+        Unspecified(null),
     }
 
     private companion object {

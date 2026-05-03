@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.crowdalert.R
 import com.example.crowdalert.ui.report.ReportViewModel.IncidentType
+import com.example.crowdalert.ui.report.ReportViewModel.Severity
 import com.example.crowdalert.ui.report.ReportViewModel.SubmitState
 import kotlinx.coroutines.delay
 
@@ -109,14 +112,16 @@ fun ReportRoute(
         contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding(),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 80.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.Top),
             ) {
                 IconButton(
                     onClick = onBackToMap,
@@ -154,13 +159,53 @@ fun ReportRoute(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    IncidentType.entries.forEach { type ->
-                        FilterChip(
-                            selected = uiState.type == type,
-                            onClick = { viewModel.onTypeChange(type) },
-                            label = { Text(type.label()) },
-                            enabled = !isSubmitting,
-                        )
+                    IncidentType.entries.chunked(CHIPS_PER_ROW).forEach { rowTypes ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            rowTypes.forEach { type ->
+                                FilterChip(
+                                    selected = uiState.type == type,
+                                    onClick = { viewModel.onTypeChange(type) },
+                                    label = { Text(type.label()) },
+                                    enabled = !isSubmitting,
+                                    colors = FilterChipDefaults.filterChipColors
+                                        (
+                                                selectedContainerColor =
+                                                    MaterialTheme.colorScheme.primaryContainer,
+                                                selectedLabelColor =
+                                                    MaterialTheme.colorScheme.onPrimaryContainer,
+                                        ),
+                                )
+                            }
+                        }
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.incidents_severity),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Severity.entries.chunked(CHIPS_PER_ROW).forEach { rowSeverities ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            rowSeverities.forEach { severity ->
+                                FilterChip(
+                                    selected = uiState.severity == severity,
+                                    onClick = { viewModel.onSeverityChange(severity) },
+                                    label = { Text(severity.label()) },
+                                    enabled = !isSubmitting,
+                                    colors = FilterChipDefaults.filterChipColors
+                                        (
+                                                selectedContainerColor =
+                                                    MaterialTheme.colorScheme.primaryContainer,
+                                                selectedLabelColor =
+                                                    MaterialTheme.colorScheme.onPrimaryContainer,
+                                        ),
+                                )
+                            }
+                        }
                     }
                 }
                 LocationPreviewCard(
@@ -296,7 +341,7 @@ private fun FullscreenLocationPicker(
                 onClick = onCancel,
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(top = 25.dp, start = 16.dp)
+                    .padding(top = 16.dp, start = 16.dp)
                     .background(
                         MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(16.dp),
@@ -364,7 +409,25 @@ private fun FullscreenLocationPicker(
 private fun IncidentType.label(): String =
     when (this) {
         IncidentType.RoadHazard -> stringResource(R.string.report_type_road_hazard)
-        IncidentType.Outage -> stringResource(R.string.report_type_outage)
         IncidentType.Flood -> stringResource(R.string.report_type_flood)
+        IncidentType.Fight -> stringResource(R.string.report_type_fight)
+        IncidentType.Medical -> stringResource(R.string.report_type_medical)
+        IncidentType.Suspicious -> stringResource(R.string.report_type_suspicious)
+        IncidentType.CrowdSurge -> stringResource(R.string.report_type_crowd_surge)
+        IncidentType.Theft -> stringResource(R.string.report_type_theft)
+        IncidentType.Fire -> stringResource(R.string.report_type_fire)
+        IncidentType.Harassment -> stringResource(R.string.report_type_harassment)
         IncidentType.Other -> stringResource(R.string.report_type_other)
     }
+
+@Composable
+private fun Severity.label(): String =
+    when (this) {
+        Severity.Low -> "Low"
+        Severity.Medium -> "Medium"
+        Severity.High -> "High"
+        Severity.Critical -> "Critical"
+        Severity.Unspecified -> "Unspecified"
+    }
+
+private const val CHIPS_PER_ROW = 3

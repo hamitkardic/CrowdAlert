@@ -23,6 +23,7 @@ interface IncidentRepository {
 data class NewIncident(
     val title: String,
     val type: String,
+    val severity: String?,
     val description: String?,
     val latitude: Double,
     val longitude: Double,
