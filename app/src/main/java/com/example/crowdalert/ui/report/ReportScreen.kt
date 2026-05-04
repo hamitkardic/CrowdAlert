@@ -69,9 +69,9 @@ fun ReportRoute(
     var draftLatitude by remember { mutableDoubleStateOf(uiState.latitude) }
     var draftLongitude by remember { mutableDoubleStateOf(uiState.longitude) }
     var draftAddress by remember { mutableStateOf(uiState.addressLabel) }
-    val errorMessage =
-        uiState.validationMessage
-            ?: (submitState as? SubmitState.Error)?.message
+    val errorMessageRes =
+        uiState.validationMessageRes
+            ?: (submitState as? SubmitState.Error)?.messageRes
 
     LaunchedEffect(Unit) {
         context.lastKnownIncidentLocation()?.let { (latitude, longitude) ->
@@ -218,9 +218,9 @@ fun ReportRoute(
                         isPickerOpen = true
                     },
                 )
-                errorMessage?.let { message ->
+                errorMessageRes?.let { messageRes ->
                     Text(
-                        text = message,
+                        text = stringResource(messageRes),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -423,11 +423,11 @@ private fun IncidentType.label(): String =
 @Composable
 private fun Severity.label(): String =
     when (this) {
-        Severity.Low -> "Low"
-        Severity.Medium -> "Medium"
-        Severity.High -> "High"
-        Severity.Critical -> "Critical"
-        Severity.Unspecified -> "Unspecified"
+        Severity.Low -> stringResource(R.string.severity_low)
+        Severity.Medium -> stringResource(R.string.severity_medium)
+        Severity.High -> stringResource(R.string.severity_high)
+        Severity.Critical -> stringResource(R.string.severity_critical)
+        Severity.Unspecified -> stringResource(R.string.severity_unspecified)
     }
 
 private const val CHIPS_PER_ROW = 3

@@ -78,6 +78,10 @@ fun IncidentsListRoute(
     val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val editSingleSelectionMessage = stringResource(R.string.incidents_select_one_to_edit)
+    val manageOwnIncidentsMessage = stringResource(R.string.incidents_manage_own_only)
+    val deleteErrorMessage = stringResource(R.string.incidents_delete_error)
+    val updateErrorMessage = stringResource(R.string.incidents_update_error)
     var isManageMode by remember { mutableStateOf(false) }
     var selectedIncidentIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
@@ -151,7 +155,7 @@ fun IncidentsListRoute(
                             else ->
                                 scope.launch {
                                     snackbarHostState.showSnackbar(
-                                        message = "Please select only one incident to edit",
+                                        message = editSingleSelectionMessage,
                                     )
                                 }
                         }
@@ -173,7 +177,7 @@ fun IncidentsListRoute(
                 if (!incident.isOwnedBy(currentUserId)) {
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            message = "You can only manage incidents you reported",
+                            message = manageOwnIncidentsMessage,
                         )
                     }
                     return@IncidentsListScreen
@@ -208,9 +212,7 @@ fun IncidentsListRoute(
                                     isManageMode = false
                                 } else {
                                     snackbarHostState.showSnackbar(
-                                        message =
-                                            result.exceptionOrNull()?.message
-                                                ?: "Unable to delete selected incidents",
+                                        message = deleteErrorMessage,
                                     )
                                 }
                             }
@@ -244,9 +246,7 @@ fun IncidentsListRoute(
                             isManageMode = false
                         } else {
                             snackbarHostState.showSnackbar(
-                                message =
-                                    result.exceptionOrNull()?.message
-                                        ?: "Unable to update incident",
+                                message = updateErrorMessage,
                             )
                         }
                     }
@@ -522,7 +522,7 @@ private fun EditIncidentDialog(
 private fun ChipSelector(
     options: List<String>,
     selected: String,
-    label: (String) -> String,
+    label: @Composable (String) -> String,
     onSelected: (String) -> Unit,
 ) {
     Column(
@@ -613,15 +613,23 @@ private fun Address.toCityDistrictLabel(): String? {
         .takeIf { it.isNotBlank() }
 }
 
+@Composable
 private fun String.incidentTypeLabel(): String =
     when (uppercase(Locale.ROOT)) {
-        "ROAD_HAZARD" -> "Road hazard"
-        "FLOOD" -> "Flood"
-        "OUTAGE" -> "Outage"
-        "FIGHT" -> "Fight"
-        "OTHER" -> "Other"
-        else ->
-            lowercase(Locale.ROOT)
+        "ROAD_HAZARD" -> stringResource(R.string.report_type_road_hazard)
+        "FLOOD" -> stringResource(R.string.report_type_flood)
+        "OUTAGE" -> stringResource(R.string.report_type_outage)
+        "FIGHT" -> stringResource(R.string.report_type_fight)
+        "MEDICAL" -> stringResource(R.string.report_type_medical)
+        "SUSPICIOUS" -> stringResource(R.string.report_type_suspicious)
+        "CROWD_SURGE" -> stringResource(R.string.report_type_crowd_surge)
+        "THEFT" -> stringResource(R.string.report_type_theft)
+        "FIRE" -> stringResource(R.string.report_type_fire)
+        "HARASSMENT" -> stringResource(R.string.report_type_harassment)
+        "OTHER" -> stringResource(R.string.report_type_other)
+        else -> {
+            val fallback =
+                lowercase(Locale.ROOT)
                 .replace('_', ' ')
                 .split(' ')
                 .filter { it.isNotBlank() }
@@ -630,7 +638,8 @@ private fun String.incidentTypeLabel(): String =
                         if (char.isLowerCase()) char.titlecase(Locale.getDefault()) else char.toString()
                     }
                 }
-                .ifBlank { "Incident" }
+            if (fallback.isBlank()) stringResource(R.string.incident_type_generic) else fallback
+        }
     }
 
 private fun String.incidentTypeColor(): Color =
@@ -642,14 +651,15 @@ private fun String.incidentTypeColor(): Color =
         else -> Color(0xFF5E35B1)
     }
 
+@Composable
 private fun String?.severityLabel(): String =
     when (this?.uppercase(Locale.ROOT)) {
-        "LOW" -> "Low"
-        "MEDIUM" -> "Medium"
-        "HIGH" -> "High"
-        "CRITICAL" -> "Critical"
-        null -> "Unspecified"
-        else -> this?.incidentTypeLabel() ?: "Unspecified"
+        "LOW" -> stringResource(R.string.severity_low)
+        "MEDIUM" -> stringResource(R.string.severity_medium)
+        "HIGH" -> stringResource(R.string.severity_high)
+        "CRITICAL" -> stringResource(R.string.severity_critical)
+        null -> stringResource(R.string.severity_unspecified)
+        else -> this?.incidentTypeLabel() ?: stringResource(R.string.severity_unspecified)
     }
 
 private fun String?.severityColor(): Color =

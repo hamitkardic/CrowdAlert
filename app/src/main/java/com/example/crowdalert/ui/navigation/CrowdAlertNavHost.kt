@@ -21,6 +21,8 @@ import com.example.crowdalert.ui.map.MapRoute
 import com.example.crowdalert.ui.map.MapViewModel
 import com.example.crowdalert.ui.report.ReportRoute
 import com.example.crowdalert.ui.report.ReportViewModel
+import com.example.crowdalert.ui.settings.AppThemeMode
+import com.example.crowdalert.ui.settings.SettingsRoute
 
 /**
  * Single-activity navigation graph: auth flow and main app shell (map + report).
@@ -30,6 +32,8 @@ fun CrowdAlertNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     authViewModel: AuthViewModel = hiltViewModel(),
+    currentThemeMode: AppThemeMode,
+    onThemeModeSelected: (AppThemeMode) -> Unit,
 ) {
     val isSignedIn by authViewModel.isSignedIn.collectAsStateWithLifecycle()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -79,10 +83,23 @@ fun CrowdAlertNavHost(
                 viewModel = mapViewModel,
                 onOpenReport = { navController.navigate(CrowdAlertRoute.Report.route) },
                 onOpenIncidents = { navController.navigate(CrowdAlertRoute.IncidentsList.route) },
+                onOpenSettings = { navController.navigate(CrowdAlertRoute.Settings.route) },
+            )
+        }
+        composable(CrowdAlertRoute.Settings.route) {
+            val mapBackStackEntry =
+                remember(navController) {
+                    navController.getBackStackEntry(CrowdAlertRoute.Map.route)
+                }
+            val mapViewModel: MapViewModel = hiltViewModel(mapBackStackEntry)
+            SettingsRoute(
+                currentThemeMode = currentThemeMode,
+                onThemeModeSelected = onThemeModeSelected,
+                onBack = { navController.popBackStack() },
                 onSignOut = {
                     mapViewModel.onSignedOut()
                     authViewModel.signOut {
-                        navController.navigate("signin") {
+                        navController.navigate(CrowdAlertRoute.Login.route) {
                             popUpTo(0) { inclusive = true }
                             launchSingleTop = true
                         }
@@ -137,4 +154,5 @@ private val mainRoutes =
         CrowdAlertRoute.Map.route,
         CrowdAlertRoute.IncidentsList.route,
         CrowdAlertRoute.Report.route,
+        CrowdAlertRoute.Settings.route,
     )

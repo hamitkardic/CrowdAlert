@@ -86,9 +86,9 @@ fun LoginRoute(
                 enabled = !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth(),
             )
-            uiState.errorMessage?.let { message ->
+            uiState.errorMessageRes?.let { messageRes ->
                 Text(
-                    text = message,
+                    text = stringResource(messageRes),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                 )

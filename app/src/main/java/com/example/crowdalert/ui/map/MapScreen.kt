@@ -35,11 +35,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -117,7 +119,7 @@ fun MapRoute(
     viewModel: MapViewModel,
     onOpenReport: () -> Unit,
     onOpenIncidents: () -> Unit,
-    onSignOut: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -188,8 +190,11 @@ fun MapRoute(
             TopAppBar(
                 title = { Text(stringResource(R.string.map_title)) },
                 actions = {
-                    TextButton(onClick = onSignOut) {
-                        Text(stringResource(R.string.auth_sign_out))
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.settings_title),
+                        )
                     }
                 },
             )
@@ -224,7 +229,7 @@ fun MapRoute(
                     .align(Alignment.TopStart)
                     .safeDrawingPadding()
                     .padding(start = 16.dp, top = 10.dp)
-                    .offset(y = (-30).dp),
+                    .offset(y = (-25).dp),
             )
             MyLocationButton(
                 onClick = {
@@ -241,7 +246,7 @@ fun MapRoute(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .safeDrawingPadding()
-                    .padding(end = 16.dp, bottom = 35.dp),
+                    .padding(end = 16.dp, bottom = 50.dp),
             )
         }
     }
@@ -501,7 +506,7 @@ private fun IncidentDetailsBottomSheet(
             )
             DetailSection(
                 label = stringResource(R.string.map_incident_reported),
-                value = incident.createdAtMillis.toReportedTimeLabel(),
+                value = incident.createdAtMillis.toReportedTimeLabel(context),
             )
             TextButton(
                 onClick = onDismiss,
@@ -789,10 +794,13 @@ private fun Address.toReadableAddress(): String? =
             .joinToString(", ")
             .takeIf { it.isNotBlank() }
 
-private fun Long?.toReportedTimeLabel(): String =
+private fun Long?.toReportedTimeLabel(context: Context): String =
     this?.let { timestamp ->
         if (DateUtils.isToday(timestamp)) {
-            "Today at ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))}"
+            context.getString(
+                R.string.map_incident_reported_today,
+                SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp)),
+            )
         } else {
             DateUtils
                 .getRelativeTimeSpanString(
@@ -802,23 +810,25 @@ private fun Long?.toReportedTimeLabel(): String =
                 )
                 .toString()
         }
-    } ?: "Unknown"
+    } ?: context.getString(R.string.map_incident_reported_unknown)
 
+@Composable
 private fun String.incidentTypeLabel(): String =
     when (uppercase(Locale.ROOT)) {
-        "ROAD_HAZARD" -> "Road hazard"
-        "FLOOD" -> "Flood"
-        "OUTAGE" -> "Outage"
-        "FIGHT" -> "Fight"
-        "MEDICAL" -> "Medical"
-        "SUSPICIOUS" -> "Suspicious"
-        "CROWD_SURGE" -> "Crowd surge"
-        "THEFT" -> "Theft"
-        "FIRE" -> "Fire"
-        "HARASSMENT" -> "Harassment"
-        "OTHER" -> "Other"
-        else ->
-            lowercase(Locale.ROOT)
+        "ROAD_HAZARD" -> stringResource(R.string.report_type_road_hazard)
+        "FLOOD" -> stringResource(R.string.report_type_flood)
+        "OUTAGE" -> stringResource(R.string.report_type_outage)
+        "FIGHT" -> stringResource(R.string.report_type_fight)
+        "MEDICAL" -> stringResource(R.string.report_type_medical)
+        "SUSPICIOUS" -> stringResource(R.string.report_type_suspicious)
+        "CROWD_SURGE" -> stringResource(R.string.report_type_crowd_surge)
+        "THEFT" -> stringResource(R.string.report_type_theft)
+        "FIRE" -> stringResource(R.string.report_type_fire)
+        "HARASSMENT" -> stringResource(R.string.report_type_harassment)
+        "OTHER" -> stringResource(R.string.report_type_other)
+        else -> {
+            val fallback =
+                lowercase(Locale.ROOT)
                 .replace('_', ' ')
                 .split(' ')
                 .filter { it.isNotBlank() }
@@ -827,7 +837,8 @@ private fun String.incidentTypeLabel(): String =
                         if (char.isLowerCase()) char.titlecase(Locale.getDefault()) else char.toString()
                     }
                 }
-                .ifBlank { "Incident" }
+            if (fallback.isBlank()) stringResource(R.string.incident_type_generic) else fallback
+        }
     }
 
 private fun String.incidentTypeColor(): Color =
@@ -841,13 +852,14 @@ private fun String.incidentTypeColor(): Color =
         else -> Color(0xFF5E35B1)
     }
 
+@Composable
 private fun String?.severityLabel(): String =
     when (this?.uppercase(Locale.ROOT)) {
-        "LOW" -> "Low"
-        "MEDIUM" -> "Medium"
-        "HIGH" -> "High"
-        "CRITICAL" -> "Critical"
-        null -> "Unspecified"
+        "LOW" -> stringResource(R.string.severity_low)
+        "MEDIUM" -> stringResource(R.string.severity_medium)
+        "HIGH" -> stringResource(R.string.severity_high)
+        "CRITICAL" -> stringResource(R.string.severity_critical)
+        null -> stringResource(R.string.severity_unspecified)
         else -> this.incidentTypeLabel()
     }
 

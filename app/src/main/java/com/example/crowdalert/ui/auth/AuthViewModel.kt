@@ -1,7 +1,9 @@
 package com.example.crowdalert.ui.auth
 
 import android.util.Patterns
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
+import com.example.crowdalert.R
 import androidx.lifecycle.viewModelScope
 import com.example.crowdalert.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,7 +38,7 @@ class AuthViewModel @Inject constructor(
     fun signIn(email: String, password: String) {
         val validationError = validateCredentials(email, password)
         if (validationError != null) {
-            _uiState.value = AuthUiState(errorMessage = validationError)
+            _uiState.value = AuthUiState(errorMessageRes = validationError)
             return
         }
 
@@ -47,7 +49,7 @@ class AuthViewModel @Inject constructor(
                 .fold(
                     onSuccess = { _uiState.value = AuthUiState() },
                     onFailure = { error ->
-                        _uiState.value = AuthUiState(errorMessage = error.toUserMessage())
+                        _uiState.value = AuthUiState(errorMessageRes = error.toUserMessageRes())
                     },
                 )
         }
@@ -56,7 +58,7 @@ class AuthViewModel @Inject constructor(
     fun signUp(email: String, password: String) {
         val validationError = validateCredentials(email, password)
         if (validationError != null) {
-            _uiState.value = AuthUiState(errorMessage = validationError)
+            _uiState.value = AuthUiState(errorMessageRes = validationError)
             return
         }
 
@@ -67,14 +69,14 @@ class AuthViewModel @Inject constructor(
                 .fold(
                     onSuccess = { _uiState.value = AuthUiState() },
                     onFailure = { error ->
-                        _uiState.value = AuthUiState(errorMessage = error.toUserMessage())
+                        _uiState.value = AuthUiState(errorMessageRes = error.toUserMessageRes())
                     },
                 )
         }
     }
 
     fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
+        _uiState.update { it.copy(errorMessageRes = null) }
     }
 
     fun signOut(onSignedOut: () -> Unit = {}) {
@@ -85,23 +87,24 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    private fun validateCredentials(email: String, password: String): String? {
+    @StringRes
+    private fun validateCredentials(email: String, password: String): Int? {
         val trimmedEmail = email.trim()
         return when {
-            trimmedEmail.isBlank() -> "Enter an email address."
-            !Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches() -> "Enter a valid email address."
-            password.isBlank() -> "Enter a password."
-            password.length < MIN_PASSWORD_LENGTH -> "Password must be at least $MIN_PASSWORD_LENGTH characters."
+            trimmedEmail.isBlank() -> R.string.auth_error_email_required
+            !Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches() -> R.string.auth_error_email_invalid
+            password.isBlank() -> R.string.auth_error_password_required
+            password.length < MIN_PASSWORD_LENGTH -> R.string.auth_error_password_too_short
             else -> null
         }
     }
 
-    private fun Throwable.toUserMessage(): String =
-        localizedMessage?.takeIf { it.isNotBlank() } ?: "Authentication failed. Please try again."
+    @StringRes
+    private fun Throwable.toUserMessageRes(): Int = R.string.auth_error_failed
 
     data class AuthUiState(
         val isLoading: Boolean = false,
-        val errorMessage: String? = null,
+        @StringRes val errorMessageRes: Int? = null,
     )
 
     private companion object {
