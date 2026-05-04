@@ -1,7 +1,9 @@
 package com.example.crowdalert.ui.report
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.crowdalert.R
 import com.example.crowdalert.data.repository.IncidentRepository
 import com.example.crowdalert.data.repository.NewIncident
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -65,12 +67,12 @@ class ReportViewModel @Inject constructor(
         val title = form.title.trim()
         val validationMessage =
             when {
-                title.isBlank() -> "Enter a title for the incident."
+                title.isBlank() -> R.string.report_error_title_required
                 else -> null
             }
 
         if (validationMessage != null) {
-            _uiState.update { it.copy(validationMessage = validationMessage) }
+            _uiState.update { it.copy(validationMessageRes = validationMessage) }
             return
         }
 
@@ -93,15 +95,15 @@ class ReportViewModel @Inject constructor(
                     _submitState.value = SubmitState.Idle
                     onDone()
                 },
-                onFailure = { e ->
-                    _submitState.value = SubmitState.Error(e.message ?: "Error")
+                onFailure = {
+                    _submitState.value = SubmitState.Error(R.string.report_submit_error)
                 },
             )
         }
     }
 
     private fun clearMessages() {
-        _uiState.update { it.copy(validationMessage = null) }
+        _uiState.update { it.copy(validationMessageRes = null) }
         if (_submitState.value is SubmitState.Error) {
             _submitState.value = SubmitState.Idle
         }
@@ -112,7 +114,7 @@ class ReportViewModel @Inject constructor(
 
         data object Submitting : SubmitState
 
-        data class Error(val message: String) : SubmitState
+        data class Error(@StringRes val messageRes: Int) : SubmitState
     }
 
     data class ReportUiState(
@@ -123,7 +125,7 @@ class ReportViewModel @Inject constructor(
         val latitude: Double = DEFAULT_LATITUDE,
         val longitude: Double = DEFAULT_LONGITUDE,
         val addressLabel: String = "",
-        val validationMessage: String? = null,
+        @StringRes val validationMessageRes: Int? = null,
     )
 
     enum class IncidentType(val firestoreValue: String) {
