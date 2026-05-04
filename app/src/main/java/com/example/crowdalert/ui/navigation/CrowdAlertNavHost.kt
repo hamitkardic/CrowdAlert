@@ -17,6 +17,8 @@ import com.example.crowdalert.ui.auth.AuthViewModel
 import com.example.crowdalert.ui.auth.LoginRoute
 import com.example.crowdalert.ui.auth.RegisterRoute
 import com.example.crowdalert.ui.incidents.IncidentsListRoute
+import com.example.crowdalert.ui.incidents.MyIncidentsRoute
+import com.example.crowdalert.ui.incidents.MyIncidentsViewModel
 import com.example.crowdalert.ui.map.MapRoute
 import com.example.crowdalert.ui.map.MapViewModel
 import com.example.crowdalert.ui.report.ReportRoute
@@ -83,6 +85,7 @@ fun CrowdAlertNavHost(
                 viewModel = mapViewModel,
                 onOpenReport = { navController.navigate(CrowdAlertRoute.Report.route) },
                 onOpenIncidents = { navController.navigate(CrowdAlertRoute.IncidentsList.route) },
+                onOpenMyIncidents = { navController.navigate(CrowdAlertRoute.MyIncidents.route) },
                 onOpenSettings = { navController.navigate(CrowdAlertRoute.Settings.route) },
             )
         }
@@ -122,6 +125,22 @@ fun CrowdAlertNavHost(
                 },
             )
         }
+        composable(CrowdAlertRoute.MyIncidents.route) {
+            val mapBackStackEntry =
+                remember(navController) {
+                    navController.getBackStackEntry(CrowdAlertRoute.Map.route)
+                }
+            val mapViewModel: MapViewModel = hiltViewModel(mapBackStackEntry)
+            val myIncidentsViewModel: MyIncidentsViewModel = hiltViewModel()
+            MyIncidentsRoute(
+                viewModel = myIncidentsViewModel,
+                onBack = { navController.popBackStack() },
+                onIncidentSelected = { incident ->
+                    mapViewModel.focusIncident(incident)
+                    navController.popBackStack()
+                },
+            )
+        }
         composable(CrowdAlertRoute.Report.route) {
             val reportViewModel: ReportViewModel = hiltViewModel()
             ReportRoute(
@@ -153,6 +172,7 @@ private val mainRoutes =
     setOf(
         CrowdAlertRoute.Map.route,
         CrowdAlertRoute.IncidentsList.route,
+        CrowdAlertRoute.MyIncidents.route,
         CrowdAlertRoute.Report.route,
         CrowdAlertRoute.Settings.route,
     )

@@ -169,6 +169,7 @@ fun IncidentsListRoute(
             currentUserId = currentUserId,
             isManageMode = isManageMode,
             selectedIncidentIds = selectedIncidentIds,
+            emptyMessage = stringResource(R.string.incidents_empty),
             onIncidentSelected = { incident ->
                 if (!isManageMode) {
                     onIncidentSelected(incident)
@@ -256,12 +257,202 @@ fun IncidentsListRoute(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MyIncidentsRoute(
+    viewModel: MyIncidentsViewModel,
+    onBack: () -> Unit,
+    onIncidentSelected: (Incident) -> Unit,
+) {
+    val incidents by viewModel.incidents.collectAsStateWithLifecycle()
+    val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val editSingleSelectionMessage = stringResource(R.string.incidents_select_one_to_edit)
+    val manageOwnIncidentsMessage = stringResource(R.string.incidents_manage_own_only)
+    val deleteErrorMessage = stringResource(R.string.incidents_delete_error)
+    val updateErrorMessage = stringResource(R.string.incidents_update_error)
+    var isManageMode by remember { mutableStateOf(false) }
+    var selectedIncidentIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var editingIncident by remember { mutableStateOf<Incident?>(null) }
+    val manageableIncidentIds =
+        remember(incidents, currentUserId) {
+            incidents
+                .filter { it.isOwnedBy(currentUserId) }
+                .map { it.id }
+                .toSet()
+        }
+    val canManage = manageableIncidentIds.isNotEmpty()
+
+    LaunchedEffect(manageableIncidentIds) {
+        selectedIncidentIds = selectedIncidentIds.intersect(manageableIncidentIds)
+        if (isManageMode && manageableIncidentIds.isEmpty()) {
+            isManageMode = false
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.my_incidents_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = stringResource(R.string.incidents_back_to_map),
+                        )
+                    }
+                },
+                actions = {
+                    if (canManage) {
+                        TextButton(
+                            onClick = {
+                                isManageMode = !isManageMode
+                                if (!isManageMode) {
+                                    selectedIncidentIds = emptySet()
+                                }
+                            },
+                        ) {
+                            Text(
+                                text =
+                                    stringResource(
+                                        if (isManageMode) {
+                                            R.string.incidents_manage_done
+                                        } else {
+                                            R.string.incidents_manage
+                                        },
+                                    ),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                },
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            if (isManageMode) {
+                ManageActionsBar(
+                    hasSelection = selectedIncidentIds.isNotEmpty(),
+                    onDelete = { showDeleteConfirmation = true },
+                    onEdit = {
+                        when (selectedIncidentIds.size) {
+                            1 ->
+                                editingIncident =
+                                    incidents.firstOrNull { it.id == selectedIncidentIds.first() }
+
+                            else ->
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = editSingleSelectionMessage,
+                                    )
+                                }
+                        }
+                    },
+                )
+            }
+        },
+    ) { inner ->
+        IncidentsListScreen(
+            incidents = incidents,
+            currentUserId = currentUserId,
+            isManageMode = isManageMode,
+            selectedIncidentIds = selectedIncidentIds,
+            emptyMessage = stringResource(R.string.my_incidents_empty),
+            onIncidentSelected = { incident ->
+                if (!isManageMode) {
+                    onIncidentSelected(incident)
+                    return@IncidentsListScreen
+                }
+                if (!incident.isOwnedBy(currentUserId)) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = manageOwnIncidentsMessage,
+                        )
+                    }
+                    return@IncidentsListScreen
+                }
+                if (incident.id in selectedIncidentIds) {
+                    selectedIncidentIds = selectedIncidentIds - incident.id
+                } else {
+                    selectedIncidentIds = selectedIncidentIds + incident.id
+                }
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner),
+        )
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text(stringResource(R.string.incidents_delete_title)) },
+            text = { Text(stringResource(R.string.incidents_delete_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val idsToDelete = selectedIncidentIds
+                        showDeleteConfirmation = false
+                        viewModel.deleteIncidents(idsToDelete) { result ->
+                            scope.launch {
+                                if (result.isSuccess) {
+                                    selectedIncidentIds = emptySet()
+                                    isManageMode = false
+                                } else {
+                                    snackbarHostState.showSnackbar(
+                                        message = deleteErrorMessage,
+                                    )
+                                }
+                            }
+                        }
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.incidents_delete),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text(stringResource(R.string.incidents_cancel))
+                }
+            },
+        )
+    }
+
+    editingIncident?.let { incident ->
+        EditIncidentDialog(
+            incident = incident,
+            onDismiss = { editingIncident = null },
+            onSave = { update ->
+                viewModel.updateIncident(incident.id, update) { result ->
+                    scope.launch {
+                        if (result.isSuccess) {
+                            editingIncident = null
+                            selectedIncidentIds = emptySet()
+                            isManageMode = false
+                        } else {
+                            snackbarHostState.showSnackbar(
+                                message = updateErrorMessage,
+                            )
+                        }
+                    }
+                }
+            },
+        )
+    }
+}
+
 @Composable
 private fun IncidentsListScreen(
     incidents: List<Incident>,
     currentUserId: String?,
     isManageMode: Boolean,
     selectedIncidentIds: Set<String>,
+    emptyMessage: String,
     onIncidentSelected: (Incident) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -294,7 +485,7 @@ private fun IncidentsListScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = stringResource(R.string.incidents_empty),
+                text = emptyMessage,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

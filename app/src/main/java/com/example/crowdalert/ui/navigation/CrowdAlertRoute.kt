@@ -12,6 +12,8 @@ sealed class CrowdAlertRoute(val route: String) {
 
     data object IncidentsList : CrowdAlertRoute("incidents")
 
+    data object MyIncidents : CrowdAlertRoute("my_incidents")
+
     data object Report : CrowdAlertRoute("report")
 
     data object Settings : CrowdAlertRoute("settings")
