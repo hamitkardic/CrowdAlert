@@ -92,6 +92,15 @@ class MapViewModel @Inject constructor(
             onComplete(incidentRepository.updateIncident(id, update))
         }
     }
+
+    fun getReporterEmail(
+        userId: String,
+        onComplete: (String?) -> Unit,
+    ) {
+        viewModelScope.launch {
+            onComplete(incidentRepository.getReporterEmail(userId).getOrNull())
+        }
+    }
 }
 
 data class IncidentMapTarget(

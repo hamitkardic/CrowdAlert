@@ -2,9 +2,12 @@ package com.example.crowdalert.ui.map
 
 import android.annotation.SuppressLint
 import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.location.Address
 import android.location.Geocoder
 import android.graphics.Color as AndroidColor
@@ -35,7 +38,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -119,9 +124,11 @@ fun MapRoute(
     viewModel: MapViewModel,
     onOpenReport: () -> Unit,
     onOpenIncidents: () -> Unit,
+    onOpenMyIncidents: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val context = LocalContext.current
+    val activity = context.findActivity()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val incidents by viewModel.incidents.collectAsStateWithLifecycle()
     val focusedIncident by viewModel.focusedIncident.collectAsStateWithLifecycle()
@@ -130,6 +137,9 @@ fun MapRoute(
     var hasLocationPermission by remember { mutableStateOf(context.hasLocationPermission()) }
     var isLocationEnabled by remember { mutableStateOf(context.isLocationEnabled()) }
     var hasShownLocationPrompt by remember { mutableStateOf(false) }
+    var initialLocationPermissionHandled by remember { mutableStateOf(hasLocationPermission) }
+    var showLocationRationale by remember { mutableStateOf(false) }
+    var showLocationSettingsDialog by remember { mutableStateOf(false) }
     val isLocationAvailable = hasLocationPermission && isLocationEnabled
     val locationPermissionLauncher =
         rememberLauncherForActivityResult(
@@ -140,6 +150,14 @@ fun MapRoute(
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true ||
                 context.hasLocationPermission()
             isLocationEnabled = context.isLocationEnabled()
+            initialLocationPermissionHandled = true
+            if (!hasLocationPermission) {
+                if (activity != null && !activity.shouldShowLocationPermissionRationale()) {
+                    showLocationSettingsDialog = true
+                } else {
+                    showLocationRationale = true
+                }
+            }
         }
 
     DisposableEffect(context, lifecycle) {
@@ -170,8 +188,19 @@ fun MapRoute(
         }
     }
 
+    LaunchedEffect(Unit) {
+        if (!hasLocationPermission) {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
+        }
+    }
+
     LaunchedEffect(isLocationAvailable) {
-        if (!isLocationAvailable && !hasShownLocationPrompt) {
+        if (initialLocationPermissionHandled && !isLocationAvailable && !hasShownLocationPrompt) {
             hasShownLocationPrompt = true
             val result =
                 snackbarHostState.showSnackbar(
@@ -190,6 +219,12 @@ fun MapRoute(
             TopAppBar(
                 title = { Text(stringResource(R.string.map_title)) },
                 actions = {
+                    IconButton(onClick = onOpenMyIncidents) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = stringResource(R.string.my_incidents_title),
+                        )
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -198,11 +233,6 @@ fun MapRoute(
                     }
                 },
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onOpenReport) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.report_fab_cd))
-            }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { inner ->
@@ -213,15 +243,18 @@ fun MapRoute(
         ) {
             var centerOnUserLocationRequest by remember { mutableStateOf(0) }
 
-            IncidentMap(
-                incidents = incidents,
-                focusedIncident = focusedIncident,
-                centerOnUserLocationRequest = centerOnUserLocationRequest,
-                hasLocationPermission = hasLocationPermission,
-                isLocationEnabled = isLocationEnabled,
-                onFocusedIncidentHandled = viewModel::onFocusedIncidentHandled,
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (initialLocationPermissionHandled) {
+                IncidentMap(
+                    incidents = incidents,
+                    focusedIncident = focusedIncident,
+                    centerOnUserLocationRequest = centerOnUserLocationRequest,
+                    hasLocationPermission = hasLocationPermission,
+                    isLocationEnabled = isLocationEnabled,
+                    onFocusedIncidentHandled = viewModel::onFocusedIncidentHandled,
+                    getReporterEmail = viewModel::getReporterEmail,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             IncidentCountBadge(
                 incidentCount = incidents.size,
                 onClick = onOpenIncidents,
@@ -231,24 +264,79 @@ fun MapRoute(
                     .padding(start = 16.dp, top = 10.dp)
                     .offset(y = (-25).dp),
             )
-            MyLocationButton(
-                onClick = {
-                    if (isLocationAvailable) {
-                        centerOnUserLocationRequest += 1
-                    } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = context.getString(R.string.map_location_disabled_snackbar),
-                            )
-                        }
-                    }
-                },
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
                     .safeDrawingPadding()
-                    .padding(end = 16.dp, bottom = 50.dp),
-            )
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.End,
+            ) {
+                MyLocationButton(
+                    onClick = {
+                        if (isLocationAvailable) {
+                            centerOnUserLocationRequest += 1
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = context.getString(R.string.map_location_disabled_snackbar),
+                                )
+                            }
+                        }
+                    },
+                )
+                FloatingActionButton(onClick = onOpenReport) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.report_fab_cd))
+                }
+            }
         }
+    }
+
+    if (showLocationRationale) {
+        AlertDialog(
+            onDismissRequest = { showLocationRationale = false },
+            title = { Text(stringResource(R.string.map_location_permission_title)) },
+            text = { Text(stringResource(R.string.map_location_permission_rationale)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLocationRationale = false
+                        enableLocation()
+                    },
+                ) {
+                    Text(stringResource(R.string.map_location_prompt_enable))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLocationRationale = false }) {
+                    Text(stringResource(R.string.incidents_cancel))
+                }
+            },
+        )
+    }
+
+    if (showLocationSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showLocationSettingsDialog = false },
+            title = { Text(stringResource(R.string.map_location_permission_title)) },
+            text = { Text(stringResource(R.string.map_location_permission_rationale)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLocationSettingsDialog = false
+                        context.openAppSettings()
+                    },
+                ) {
+                    Text(stringResource(R.string.map_location_open_settings))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLocationSettingsDialog = false }) {
+                    Text(stringResource(R.string.incidents_cancel))
+                }
+            },
+        )
     }
 }
 
@@ -260,6 +348,7 @@ private fun IncidentMap(
     hasLocationPermission: Boolean,
     isLocationEnabled: Boolean,
     onFocusedIncidentHandled: () -> Unit,
+    getReporterEmail: (String, (String?) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -444,6 +533,7 @@ private fun IncidentMap(
         IncidentDetailsBottomSheet(
             incident = incident,
             onDismiss = { selectedIncident = null },
+            getReporterEmail = getReporterEmail,
         )
     }
 }
@@ -453,10 +543,13 @@ private fun IncidentMap(
 private fun IncidentDetailsBottomSheet(
     incident: Incident,
     onDismiss: () -> Unit,
+    getReporterEmail: (String, (String?) -> Unit) -> Unit,
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var address by remember(incident.id) { mutableStateOf<String?>(null) }
+    var resolvedReportedBy by remember(incident.id) { mutableStateOf<String?>(null) }
+    var reportedByLoadComplete by remember(incident.id) { mutableStateOf(false) }
 
     LaunchedEffect(incident.id) {
         address =
@@ -464,6 +557,24 @@ private fun IncidentDetailsBottomSheet(
                 latitude = incident.latitude,
                 longitude = incident.longitude,
             ) ?: context.getString(R.string.incidents_location_unknown)
+    }
+
+    LaunchedEffect(incident.id, incident.reporterId, incident.reporterEmail) {
+        val fromIncident = incident.reporterEmail
+        if (!fromIncident.isNullOrEmpty()) {
+            resolvedReportedBy = fromIncident
+            reportedByLoadComplete = true
+            return@LaunchedEffect
+        }
+        val reporterId = incident.reporterId
+        if (reporterId == null) {
+            reportedByLoadComplete = true
+            return@LaunchedEffect
+        }
+        getReporterEmail(reporterId) { email ->
+            resolvedReportedBy = email?.takeIf { it.isNotEmpty() }
+            reportedByLoadComplete = true
+        }
     }
 
     ModalBottomSheet(
@@ -508,11 +619,28 @@ private fun IncidentDetailsBottomSheet(
                 label = stringResource(R.string.map_incident_reported),
                 value = incident.createdAtMillis.toReportedTimeLabel(context),
             )
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.align(Alignment.End),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(R.string.map_incident_dismiss))
+                Text(
+                    text =
+                        stringResource(
+                            R.string.map_incident_reported_by,
+                            when {
+                                !resolvedReportedBy.isNullOrEmpty() -> resolvedReportedBy!!
+                                reportedByLoadComplete ->
+                                    stringResource(R.string.map_incident_reporter_unknown)
+                                else -> stringResource(R.string.incidents_location_resolving)
+                            },
+                        ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.map_incident_dismiss))
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
         }
@@ -734,6 +862,25 @@ private fun Context.hasLocationPermission(): Boolean =
         PackageManager.PERMISSION_GRANTED ||
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
         PackageManager.PERMISSION_GRANTED
+
+private fun Activity.shouldShowLocationPermissionRationale(): Boolean =
+    shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) ||
+        shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)
+
+private tailrec fun Context.findActivity(): Activity? =
+    when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
+
+private fun Context.openAppSettings() {
+    val intent =
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
+        }
+    startActivity(intent)
+}
 
 private fun List<Incident>.toGeoJsonFeatureCollection(): String {
     val features = JSONArray()

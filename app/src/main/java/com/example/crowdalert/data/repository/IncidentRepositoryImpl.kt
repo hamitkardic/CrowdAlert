@@ -40,8 +40,46 @@ class IncidentRepositoryImpl @Inject constructor(
         awaitClose { reg.remove() }
     }
 
+    override fun observeMyIncidents(userId: String): Flow<List<Incident>> = callbackFlow {
+        val reg =
+            firestore
+                .collection(COLLECTION_INCIDENTS)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        trySend(emptyList())
+                        return@addSnapshotListener
+                    }
+                    val list =
+                        snapshot?.documents
+                            ?.mapNotNull { it.toIncidentOrNull() }
+                            ?.filter { it.reporterId == userId }
+                            ?: emptyList()
+                    trySend(list)
+                }
+        awaitClose { reg.remove() }
+    }
+
+    override suspend fun getReporterEmail(userId: String): Result<String?> =
+        runCatching {
+            val storedEmail =
+                firestore
+                .collection(COLLECTION_USERS)
+                .document(userId)
+                .get()
+                .await()
+                .getString("email")
+                ?.takeIf { it.isNotBlank() }
+            storedEmail
+                ?: firebaseAuth.currentUser
+                    ?.takeIf { it.uid == userId }
+                    ?.email
+                    ?.takeIf { it.isNotBlank() }
+                ?: "User ${userId.take(SHORT_USER_ID_LENGTH)}"
+        }
+
     override suspend fun reportIncident(incident: NewIncident): Result<String> =
         runCatching {
+            val currentUser = firebaseAuth.currentUser
             val data =
                 hashMapOf(
                     "title" to incident.title,
@@ -50,7 +88,9 @@ class IncidentRepositoryImpl @Inject constructor(
                     "description" to incident.description,
                     "latitude" to incident.latitude,
                     "longitude" to incident.longitude,
-                    "reporterId" to firebaseAuth.currentUser?.uid,
+                    "reportedBy" to currentUser?.uid,
+                    "reporterId" to currentUser?.uid,
+                    "reportedByEmail" to currentUser?.email,
                     "createdAt" to FieldValue.serverTimestamp(),
                 )
             val ref = firestore.collection(COLLECTION_INCIDENTS).add(data).await()
@@ -92,12 +132,14 @@ class IncidentRepositoryImpl @Inject constructor(
 
     private companion object {
         const val COLLECTION_INCIDENTS = "incidents"
+        const val COLLECTION_USERS = "users"
+        const val SHORT_USER_ID_LENGTH = 6
     }
 }
 
 private fun DocumentSnapshot.requireOwnedBy(currentUid: String) {
     if (!exists()) error("Incident does not exist.")
-    val ownerId = getString("reporterId") ?: getString("reportedBy")
+    val ownerId = getString("reportedBy") ?: getString("reporterId")
     check(ownerId == currentUid) {
         "You can only manage incidents you reported."
     }
@@ -110,7 +152,8 @@ private fun DocumentSnapshot.toIncidentOrNull(): Incident? {
     val lat = (get("latitude") as? Number)?.toDouble() ?: return null
     val lon = (get("longitude") as? Number)?.toDouble() ?: return null
     val severity = getString("severity")
-    val reporterId = getString("reporterId") ?: getString("reportedBy")
+    val reporterId = getString("reportedBy") ?: getString("reporterId")
+    val reporterEmail = getString("reportedByEmail") ?: getString("reporterEmail")
     val created = getTimestamp("createdAt")?.toDate()?.time
     return Incident(
         id = id,
@@ -121,6 +164,7 @@ private fun DocumentSnapshot.toIncidentOrNull(): Incident? {
         longitude = lon,
         severity = severity,
         reporterId = reporterId,
+        reporterEmail = reporterEmail,
         createdAtMillis = created,
     )
 }

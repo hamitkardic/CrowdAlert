@@ -7,6 +7,10 @@ import kotlinx.coroutines.flow.Flow
 interface IncidentRepository {
     fun observeIncidents(): Flow<List<Incident>>
 
+    fun observeMyIncidents(userId: String): Flow<List<Incident>>
+
+    suspend fun getReporterEmail(userId: String): Result<String?>
+
     suspend fun reportIncident(incident: NewIncident): Result<String>
 
     suspend fun deleteIncidents(ids: Collection<String>): Result<Unit>
