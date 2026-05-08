@@ -1,63 +1,62 @@
 package com.example.crowdalert.data.repository
 
 import com.example.crowdalert.data.model.Incident
+import com.example.crowdalert.data.room.IncidentDao
+import com.example.crowdalert.data.room.IncidentEntity
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Singleton
 class IncidentRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val firebaseAuth: FirebaseAuth,
+    private val incidentDao: IncidentDao,
 ) : IncidentRepository {
 
-    override fun observeIncidents(): Flow<List<Incident>> = callbackFlow {
-        val reg: ListenerRegistration =
-            firestore
-                .collection(COLLECTION_INCIDENTS)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        trySend(emptyList())
-                        close()
-                        return@addSnapshotListener
-                    }
-                    if (snapshot == null) {
-                        trySend(emptyList())
-                        return@addSnapshotListener
-                    }
-                    val list =
-                        snapshot.documents.mapNotNull { it.toIncidentOrNull() }
-                    trySend(list)
+    override fun observeIncidents(): Flow<List<Incident>> =
+        channelFlow {
+            val roomJob =
+                launch {
+                    incidentDao
+                        .observeAllIncidents()
+                        .map { entities -> entities.map { it.toIncident() } }
+                        .collect { send(it) }
                 }
-        awaitClose { reg.remove() }
-    }
+            val reg = startFirestoreIncidentCacheSync()
+            awaitClose {
+                reg.remove()
+                roomJob.cancel()
+            }
+        }
 
-    override fun observeMyIncidents(userId: String): Flow<List<Incident>> = callbackFlow {
-        val reg =
-            firestore
-                .collection(COLLECTION_INCIDENTS)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        trySend(emptyList())
-                        return@addSnapshotListener
-                    }
-                    val list =
-                        snapshot?.documents
-                            ?.mapNotNull { it.toIncidentOrNull() }
-                            ?.filter { it.reporterId == userId }
-                            ?: emptyList()
-                    trySend(list)
+    override fun observeMyIncidents(userId: String): Flow<List<Incident>> =
+        channelFlow {
+            val roomJob =
+                launch {
+                    incidentDao
+                        .observeMyIncidents(userId)
+                        .map { entities -> entities.map { it.toIncident() } }
+                        .collect { send(it) }
                 }
-        awaitClose { reg.remove() }
-    }
+            val reg = startFirestoreIncidentCacheSync()
+            awaitClose {
+                reg.remove()
+                roomJob.cancel()
+            }
+        }
 
     override suspend fun getReporterEmail(userId: String): Result<String?> =
         runCatching {
@@ -94,6 +93,21 @@ class IncidentRepositoryImpl @Inject constructor(
                     "createdAt" to FieldValue.serverTimestamp(),
                 )
             val ref = firestore.collection(COLLECTION_INCIDENTS).add(data).await()
+            incidentDao.insertIncident(
+                IncidentEntity(
+                    id = ref.id,
+                    title = incident.title,
+                    type = incident.type,
+                    severity = incident.severity,
+                    description = incident.description,
+                    latitude = incident.latitude,
+                    longitude = incident.longitude,
+                    reportedBy = currentUser?.uid,
+                    reportedByEmail = currentUser?.email,
+                    createdAt = System.currentTimeMillis(),
+                    isSyncedToFirestore = true,
+                ),
+            )
             ref.id
         }
 
@@ -107,6 +121,7 @@ class IncidentRepositoryImpl @Inject constructor(
                     val snapshot = ref.get().await()
                     snapshot.requireOwnedBy(currentUid)
                     ref.delete().await()
+                    incidentDao.deleteById(id)
                 }
         }
 
@@ -130,12 +145,58 @@ class IncidentRepositoryImpl @Inject constructor(
                 ).await()
         }
 
+    private fun CoroutineScope.startFirestoreIncidentCacheSync(): ListenerRegistration =
+        firestore
+            .collection(COLLECTION_INCIDENTS)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null) {
+                    return@addSnapshotListener
+                }
+                val incidents = snapshot.documents.mapNotNull { it.toIncidentOrNull() }
+                launch {
+                    incidentDao.insertAll(incidents.map { it.toEntity() })
+                    snapshot
+                        .documentChanges
+                        .filter { it.type == DocumentChange.Type.REMOVED }
+                        .forEach { incidentDao.deleteById(it.document.id) }
+                }
+            }
+
     private companion object {
         const val COLLECTION_INCIDENTS = "incidents"
         const val COLLECTION_USERS = "users"
         const val SHORT_USER_ID_LENGTH = 6
     }
 }
+
+private fun IncidentEntity.toIncident(): Incident =
+    Incident(
+        id = id,
+        title = title,
+        type = type,
+        description = description,
+        latitude = latitude,
+        longitude = longitude,
+        severity = severity,
+        reporterId = reportedBy,
+        reporterEmail = reportedByEmail,
+        createdAtMillis = createdAt,
+    )
+
+private fun Incident.toEntity(isSyncedToFirestore: Boolean = true): IncidentEntity =
+    IncidentEntity(
+        id = id,
+        title = title,
+        type = type,
+        severity = severity,
+        description = description,
+        latitude = latitude,
+        longitude = longitude,
+        reportedBy = reporterId,
+        reportedByEmail = reporterEmail,
+        createdAt = createdAtMillis,
+        isSyncedToFirestore = isSyncedToFirestore,
+    )
 
 private fun DocumentSnapshot.requireOwnedBy(currentUid: String) {
     if (!exists()) error("Incident does not exist.")

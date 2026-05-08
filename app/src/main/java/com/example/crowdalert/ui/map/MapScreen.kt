@@ -17,6 +17,9 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.format.DateUtils
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -38,6 +41,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -132,6 +136,7 @@ fun MapRoute(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val incidents by viewModel.incidents.collectAsStateWithLifecycle()
     val focusedIncident by viewModel.focusedIncident.collectAsStateWithLifecycle()
+    val incidentAlert by viewModel.incidentAlert.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var hasLocationPermission by remember { mutableStateOf(context.hasLocationPermission()) }
@@ -200,6 +205,9 @@ fun MapRoute(
     }
 
     LaunchedEffect(isLocationAvailable) {
+        if (!isLocationAvailable) {
+            viewModel.updateUserLocation(null)
+        }
         if (initialLocationPermissionHandled && !isLocationAvailable && !hasShownLocationPrompt) {
             hasShownLocationPrompt = true
             val result =
@@ -251,10 +259,19 @@ fun MapRoute(
                     hasLocationPermission = hasLocationPermission,
                     isLocationEnabled = isLocationEnabled,
                     onFocusedIncidentHandled = viewModel::onFocusedIncidentHandled,
+                    onUserLocationChanged = viewModel::updateUserLocation,
                     getReporterEmail = viewModel::getReporterEmail,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+            IncidentAlertBanner(
+                alertState = incidentAlert,
+                onDismiss = viewModel::dismissCurrentIncidentAlert,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .safeDrawingPadding()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
             IncidentCountBadge(
                 incidentCount = incidents.size,
                 onClick = onOpenIncidents,
@@ -348,6 +365,7 @@ private fun IncidentMap(
     hasLocationPermission: Boolean,
     isLocationEnabled: Boolean,
     onFocusedIncidentHandled: () -> Unit,
+    onUserLocationChanged: (Location?) -> Unit,
     getReporterEmail: (String, (String?) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -446,6 +464,7 @@ private fun IncidentMap(
         val mapLibreMap = map ?: return@LaunchedEffect
         if (!hasLocationPermission || !isLocationEnabled) {
             locationComponentReady = false
+            onUserLocationChanged(null)
             return@LaunchedEffect
         }
 
@@ -455,7 +474,17 @@ private fun IncidentMap(
                     context = context,
                     style = style,
                 )
+            onUserLocationChanged(mapLibreMap.currentLocation())
         }
+    }
+
+    LaunchedEffect(map, hasLocationPermission, isLocationEnabled, locationComponentReady) {
+        val mapLibreMap = map ?: return@LaunchedEffect
+        if (!hasLocationPermission || !isLocationEnabled || !locationComponentReady) {
+            onUserLocationChanged(null)
+            return@LaunchedEffect
+        }
+        onUserLocationChanged(mapLibreMap.currentLocation())
     }
 
     LaunchedEffect(map, hasLocationPermission, isLocationEnabled, locationComponentReady, focusedIncident) {
@@ -518,6 +547,7 @@ private fun IncidentMap(
                                 style = style,
                                 hasLocationPermission = hasLocationPermission && isLocationEnabled,
                             )
+                        onUserLocationChanged(mapLibreMap.currentLocation())
                     }
                 }
             }
@@ -535,6 +565,62 @@ private fun IncidentMap(
             onDismiss = { selectedIncident = null },
             getReporterEmail = getReporterEmail,
         )
+    }
+}
+
+@Composable
+private fun IncidentAlertBanner(
+    alertState: IncidentAlertState?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedVisibility(
+        visible = alertState != null,
+        enter = slideInVertically(initialOffsetY = { -it }),
+        exit = slideOutVertically(targetOffsetY = { -it }),
+        modifier = modifier,
+    ) {
+        val alert = alertState ?: return@AnimatedVisibility
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFB71C1C), RoundedCornerShape(12.dp))
+                .padding(start = 16.dp, top = 10.dp, end = 6.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "\u26A0 New incident: ${alert.incident.title} (${alert.incident.type})",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (alert.total > 1) {
+                    Text(
+                        text = "${alert.position} of ${alert.total}",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+            if (alert.total > 1) {
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = "Next",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Dismiss incident alert",
+                    tint = Color.White,
+                )
+            }
+        }
     }
 }
 
