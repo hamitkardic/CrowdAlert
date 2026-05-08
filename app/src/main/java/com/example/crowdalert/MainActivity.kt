@@ -18,6 +18,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import com.example.crowdalert.ui.navigation.CrowdAlertNavHost
 import com.example.crowdalert.ui.settings.AppSettings
 import com.example.crowdalert.ui.settings.AppThemeMode
@@ -50,6 +52,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestPostNotificationsPermissionIfNeeded()
+        lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStop(owner: LifecycleOwner) {
+                    getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+                        .edit()
+                        .putLong(KEY_LAST_SEEN_TIMESTAMP, System.currentTimeMillis())
+                        .apply()
+                }
+            },
+        )
         setContent {
             var themeMode by remember { mutableStateOf(AppSettings.getThemeMode(this)) }
             val systemDarkTheme = isSystemInDarkTheme()
@@ -79,5 +91,10 @@ class MainActivity : AppCompatActivity() {
         if (!isGranted) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    private companion object {
+        const val PREFERENCES_NAME = "app_settings"
+        const val KEY_LAST_SEEN_TIMESTAMP = "last_seen_timestamp"
     }
 }
