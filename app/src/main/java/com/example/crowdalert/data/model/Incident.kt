@@ -11,6 +11,7 @@ data class Incident(
     val severity: String? = null,
     val reporterId: String? = null,
     val reporterEmail: String? = null,
+    val reporterName: String? = null,
     /** Millis since epoch from the Firestore `createdAt` field, if present. */
     val createdAtMillis: Long? = null,
 )

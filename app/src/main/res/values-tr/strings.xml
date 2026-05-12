@@ -2,12 +2,14 @@
     <string name="app_name">CrowdAlert</string>
     <string name="auth_login_title">Giriş yap</string>
     <string name="auth_register_title">Hesap oluştur</string>
+    <string name="auth_full_name">Ad Soyad</string>
     <string name="auth_email">E-posta</string>
     <string name="auth_password">Şifre</string>
     <string name="auth_sign_in">Giriş yap</string>
     <string name="auth_create_account">Hesap oluştur</string>
     <string name="auth_back">Geri</string>
     <string name="auth_sign_out">Çıkış yap</string>
+    <string name="auth_error_full_name_required">Adınızı ve soyadınızı girin.</string>
     <string name="auth_error_email_required">Bir e-posta adresi girin.</string>
     <string name="auth_error_email_invalid">Geçerli bir e-posta adresi girin.</string>
     <string name="auth_error_password_required">Bir şifre girin.</string>

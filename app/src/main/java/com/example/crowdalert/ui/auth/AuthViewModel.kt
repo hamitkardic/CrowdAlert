@@ -55,8 +55,13 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun signUp(email: String, password: String) {
-        val validationError = validateCredentials(email, password)
+    fun signUp(fullName: String, email: String, password: String) {
+        val trimmedFullName = fullName.trim()
+        val validationError =
+            when {
+                trimmedFullName.isBlank() -> R.string.auth_error_full_name_required
+                else -> validateCredentials(email, password)
+            }
         if (validationError != null) {
             _uiState.value = AuthUiState(errorMessageRes = validationError)
             return
@@ -65,7 +70,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = AuthUiState(isLoading = true)
             authRepository
-                .signUp(email.trim(), password)
+                .signUp(trimmedFullName, email.trim(), password)
                 .fold(
                     onSuccess = { _uiState.value = AuthUiState() },
                     onFailure = { error ->

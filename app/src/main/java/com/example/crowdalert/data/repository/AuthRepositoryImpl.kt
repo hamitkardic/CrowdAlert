@@ -2,6 +2,7 @@ package com.example.crowdalert.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -35,15 +36,31 @@ class AuthRepositoryImpl @Inject constructor(
             Unit
         }
 
-    override suspend fun signUp(email: String, password: String): Result<Unit> =
+    override suspend fun signUp(fullName: String, email: String, password: String): Result<Unit> =
         runCatching {
-            val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
-            result.user?.uid?.let { uid ->
+            val trimmedEmail = email.trim()
+            val trimmedFullName = fullName.trim()
+            val result = firebaseAuth.createUserWithEmailAndPassword(trimmedEmail, password).await()
+            result.user?.let { user ->
+                runCatching {
+                    user
+                        .updateProfile(
+                            UserProfileChangeRequest
+                                .Builder()
+                                .setDisplayName(trimmedFullName)
+                                .build(),
+                        ).await()
+                }
                 runCatching {
                     firestore
                         .collection(COLLECTION_USERS)
-                        .document(uid)
-                        .set(mapOf("email" to email.trim()))
+                        .document(user.uid)
+                        .set(
+                            mapOf(
+                                "email" to trimmedEmail,
+                                "name" to trimmedFullName,
+                            ),
+                        )
                         .await()
                 }
             }

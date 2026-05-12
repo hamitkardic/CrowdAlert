@@ -9,7 +9,7 @@ interface IncidentRepository {
 
     fun observeMyIncidents(userId: String): Flow<List<Incident>>
 
-    suspend fun getReporterEmail(userId: String): Result<String?>
+    suspend fun getReporterProfile(userId: String): Result<ReporterProfile>
 
     suspend fun reportIncident(incident: NewIncident): Result<String>
 
@@ -31,6 +31,11 @@ data class NewIncident(
     val description: String?,
     val latitude: Double,
     val longitude: Double,
+)
+
+data class ReporterProfile(
+    val name: String?,
+    val email: String?,
 )
 
 data class IncidentUpdate(

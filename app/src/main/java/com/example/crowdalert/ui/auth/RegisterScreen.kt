@@ -36,6 +36,7 @@ fun RegisterRoute(
     onNavigateBack: () -> Unit,
     viewModel: AuthViewModel,
 ) {
+    var fullName by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -56,6 +57,17 @@ fun RegisterRoute(
                 text = stringResource(R.string.auth_register_title),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground,
+            )
+            OutlinedTextField(
+                value = fullName,
+                onValueChange = {
+                    fullName = it
+                    viewModel.clearError()
+                },
+                label = { Text(stringResource(R.string.auth_full_name)) },
+                singleLine = true,
+                enabled = !uiState.isLoading,
+                modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = email,
@@ -94,7 +106,7 @@ fun RegisterRoute(
                 )
             }
             Button(
-                onClick = { viewModel.signUp(email, password) },
+                onClick = { viewModel.signUp(fullName, email, password) },
                 enabled = !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth(),
             ) {
