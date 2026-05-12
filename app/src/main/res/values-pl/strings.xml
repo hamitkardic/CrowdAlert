@@ -2,12 +2,14 @@
     <string name="app_name">CrowdAlert</string>
     <string name="auth_login_title">Zaloguj się</string>
     <string name="auth_register_title">Utwórz konto</string>
+    <string name="auth_full_name">Imię i nazwisko</string>
     <string name="auth_email">E-mail</string>
     <string name="auth_password">Hasło</string>
     <string name="auth_sign_in">Zaloguj się</string>
     <string name="auth_create_account">Utwórz konto</string>
     <string name="auth_back">Wstecz</string>
     <string name="auth_sign_out">Wyloguj się</string>
+    <string name="auth_error_full_name_required">Wpisz imię i nazwisko.</string>
     <string name="auth_error_email_required">Wpisz adres e-mail.</string>
     <string name="auth_error_email_invalid">Wpisz prawidłowy adres e-mail.</string>
     <string name="auth_error_password_required">Wpisz hasło.</string>

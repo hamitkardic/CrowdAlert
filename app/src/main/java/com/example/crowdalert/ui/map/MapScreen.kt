@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -92,6 +91,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.crowdalert.R
 import com.example.crowdalert.data.model.Incident
+import com.example.crowdalert.data.repository.ReporterProfile
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -260,27 +260,29 @@ fun MapRoute(
                     isLocationEnabled = isLocationEnabled,
                     onFocusedIncidentHandled = viewModel::onFocusedIncidentHandled,
                     onUserLocationChanged = viewModel::updateUserLocation,
-                    getReporterEmail = viewModel::getReporterEmail,
+                    getReporterProfile = viewModel::getReporterProfile,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            IncidentAlertBanner(
-                alertState = incidentAlert,
-                onDismiss = viewModel::dismissCurrentIncidentAlert,
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
+                    .fillMaxWidth()
                     .safeDrawingPadding()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-            IncidentCountBadge(
-                incidentCount = incidents.size,
-                onClick = onOpenIncidents,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .safeDrawingPadding()
-                    .padding(start = 16.dp, top = 10.dp)
-                    .offset(y = (-25).dp),
-            )
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                IncidentCountBadge(
+                    incidentCount = incidents.size,
+                    onClick = onOpenIncidents,
+                )
+                IncidentAlertBanner(
+                    alertState = incidentAlert,
+                    onDismiss = viewModel::dismissCurrentIncidentAlert,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -366,7 +368,7 @@ private fun IncidentMap(
     isLocationEnabled: Boolean,
     onFocusedIncidentHandled: () -> Unit,
     onUserLocationChanged: (Location?) -> Unit,
-    getReporterEmail: (String, (String?) -> Unit) -> Unit,
+    getReporterProfile: (String, (ReporterProfile?) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -563,7 +565,7 @@ private fun IncidentMap(
         IncidentDetailsBottomSheet(
             incident = incident,
             onDismiss = { selectedIncident = null },
-            getReporterEmail = getReporterEmail,
+            getReporterProfile = getReporterProfile,
         )
     }
 }
@@ -629,7 +631,7 @@ private fun IncidentAlertBanner(
 private fun IncidentDetailsBottomSheet(
     incident: Incident,
     onDismiss: () -> Unit,
-    getReporterEmail: (String, (String?) -> Unit) -> Unit,
+    getReporterProfile: (String, (ReporterProfile?) -> Unit) -> Unit,
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -645,8 +647,8 @@ private fun IncidentDetailsBottomSheet(
             ) ?: context.getString(R.string.incidents_location_unknown)
     }
 
-    LaunchedEffect(incident.id, incident.reporterId, incident.reporterEmail) {
-        val fromIncident = incident.reporterEmail
+    LaunchedEffect(incident.id, incident.reporterId, incident.reporterEmail, incident.reporterName) {
+        val fromIncident = formatReporterDisplay(incident.reporterName, incident.reporterEmail)
         if (!fromIncident.isNullOrEmpty()) {
             resolvedReportedBy = fromIncident
             reportedByLoadComplete = true
@@ -657,8 +659,8 @@ private fun IncidentDetailsBottomSheet(
             reportedByLoadComplete = true
             return@LaunchedEffect
         }
-        getReporterEmail(reporterId) { email ->
-            resolvedReportedBy = email?.takeIf { it.isNotEmpty() }
+        getReporterProfile(reporterId) { profile ->
+            resolvedReportedBy = formatReporterDisplay(profile?.name, profile?.email)
             reportedByLoadComplete = true
         }
     }
@@ -730,6 +732,16 @@ private fun IncidentDetailsBottomSheet(
             }
             Spacer(modifier = Modifier.height(4.dp))
         }
+    }
+}
+
+private fun formatReporterDisplay(name: String?, email: String?): String? {
+    val trimmedName = name?.trim()?.takeIf { it.isNotEmpty() }
+    val trimmedEmail = email?.trim()?.takeIf { it.isNotEmpty() }
+    return when {
+        trimmedName != null && trimmedEmail != null -> "$trimmedName ($trimmedEmail)"
+        trimmedName != null -> trimmedName
+        else -> trimmedEmail
     }
 }
 

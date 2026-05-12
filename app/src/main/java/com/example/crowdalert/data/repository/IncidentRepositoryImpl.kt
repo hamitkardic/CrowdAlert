@@ -58,27 +58,23 @@ class IncidentRepositoryImpl @Inject constructor(
             }
         }
 
-    override suspend fun getReporterEmail(userId: String): Result<String?> =
+    override suspend fun getReporterProfile(userId: String): Result<ReporterProfile> =
         runCatching {
-            val storedEmail =
-                firestore
-                .collection(COLLECTION_USERS)
-                .document(userId)
-                .get()
-                .await()
-                .getString("email")
-                ?.takeIf { it.isNotBlank() }
-            storedEmail
-                ?: firebaseAuth.currentUser
-                    ?.takeIf { it.uid == userId }
-                    ?.email
-                    ?.takeIf { it.isNotBlank() }
-                ?: "User ${userId.take(SHORT_USER_ID_LENGTH)}"
+            getStoredReporterProfile(userId)
         }
 
     override suspend fun reportIncident(incident: NewIncident): Result<String> =
         runCatching {
             val currentUser = firebaseAuth.currentUser
+            val currentUserName =
+                currentUser
+                    ?.displayName
+                    ?.takeIf { it.isNotBlank() }
+                    ?: currentUser
+                        ?.uid
+                        ?.let { uid ->
+                            runCatching { getStoredReporterProfile(uid).name }.getOrNull()
+                        }
             val data =
                 hashMapOf(
                     "title" to incident.title,
@@ -90,6 +86,7 @@ class IncidentRepositoryImpl @Inject constructor(
                     "reportedBy" to currentUser?.uid,
                     "reporterId" to currentUser?.uid,
                     "reportedByEmail" to currentUser?.email,
+                    "reportedByName" to currentUserName,
                     "createdAt" to FieldValue.serverTimestamp(),
                 )
             val ref = firestore.collection(COLLECTION_INCIDENTS).add(data).await()
@@ -104,6 +101,7 @@ class IncidentRepositoryImpl @Inject constructor(
                     longitude = incident.longitude,
                     reportedBy = currentUser?.uid,
                     reportedByEmail = currentUser?.email,
+                    reportedByName = currentUserName,
                     createdAt = System.currentTimeMillis(),
                     isSyncedToFirestore = true,
                 ),
@@ -162,10 +160,35 @@ class IncidentRepositoryImpl @Inject constructor(
                 }
             }
 
+    private suspend fun getStoredReporterProfile(userId: String): ReporterProfile {
+        val userDocument =
+            firestore
+                .collection(COLLECTION_USERS)
+                .document(userId)
+                .get()
+                .await()
+        val currentUser = firebaseAuth.currentUser?.takeIf { it.uid == userId }
+        return ReporterProfile(
+            name =
+                currentUser
+                    ?.displayName
+                    ?.takeIf { it.isNotBlank() }
+                    ?: userDocument
+                        .getString("name")
+                        ?.takeIf { it.isNotBlank() },
+            email =
+                userDocument
+                    .getString("email")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: currentUser
+                        ?.email
+                        ?.takeIf { it.isNotBlank() },
+        )
+    }
+
     private companion object {
         const val COLLECTION_INCIDENTS = "incidents"
         const val COLLECTION_USERS = "users"
-        const val SHORT_USER_ID_LENGTH = 6
     }
 }
 
@@ -180,6 +203,7 @@ private fun IncidentEntity.toIncident(): Incident =
         severity = severity,
         reporterId = reportedBy,
         reporterEmail = reportedByEmail,
+        reporterName = reportedByName,
         createdAtMillis = createdAt,
     )
 
@@ -194,6 +218,7 @@ private fun Incident.toEntity(isSyncedToFirestore: Boolean = true): IncidentEnti
         longitude = longitude,
         reportedBy = reporterId,
         reportedByEmail = reporterEmail,
+        reportedByName = reporterName,
         createdAt = createdAtMillis,
         isSyncedToFirestore = isSyncedToFirestore,
     )
@@ -215,6 +240,7 @@ private fun DocumentSnapshot.toIncidentOrNull(): Incident? {
     val severity = getString("severity")
     val reporterId = getString("reportedBy") ?: getString("reporterId")
     val reporterEmail = getString("reportedByEmail") ?: getString("reporterEmail")
+    val reporterName = getString("reportedByName")
     val created = getTimestamp("createdAt")?.toDate()?.time
     return Incident(
         id = id,
@@ -226,6 +252,7 @@ private fun DocumentSnapshot.toIncidentOrNull(): Incident? {
         severity = severity,
         reporterId = reporterId,
         reporterEmail = reporterEmail,
+        reporterName = reporterName,
         createdAtMillis = created,
     )
 }

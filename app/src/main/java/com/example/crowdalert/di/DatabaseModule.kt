@@ -2,6 +2,8 @@ package com.example.crowdalert.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.crowdalert.data.room.CrowdAlertDatabase
 import com.example.crowdalert.data.room.IncidentDao
 import dagger.Module
@@ -22,9 +24,17 @@ object DatabaseModule {
                 context,
                 CrowdAlertDatabase::class.java,
                 "crowdalert_database",
-            ).build()
+            ).addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     @Singleton
     fun provideIncidentDao(database: CrowdAlertDatabase): IncidentDao = database.incidentDao()
+
+    private val MIGRATION_1_2 =
+        object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE incidents ADD COLUMN reportedByName TEXT")
+            }
+        }
 }

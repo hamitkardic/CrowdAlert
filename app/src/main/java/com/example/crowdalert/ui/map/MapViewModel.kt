@@ -8,6 +8,7 @@ import com.example.crowdalert.data.model.Incident
 import com.example.crowdalert.data.repository.AuthRepository
 import com.example.crowdalert.data.repository.IncidentRepository
 import com.example.crowdalert.data.repository.IncidentUpdate
+import com.example.crowdalert.data.repository.ReporterProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -21,9 +22,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/**
- * Map screen state: live incident list from Firestore and optional location.
- */
+
 @HiltViewModel
 class MapViewModel @Inject constructor(
     private val incidentRepository: IncidentRepository,
@@ -133,12 +132,12 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    fun getReporterEmail(
+    fun getReporterProfile(
         userId: String,
-        onComplete: (String?) -> Unit,
+        onComplete: (ReporterProfile?) -> Unit,
     ) {
         viewModelScope.launch {
-            onComplete(incidentRepository.getReporterEmail(userId).getOrNull())
+            onComplete(incidentRepository.getReporterProfile(userId).getOrNull())
         }
     }
 

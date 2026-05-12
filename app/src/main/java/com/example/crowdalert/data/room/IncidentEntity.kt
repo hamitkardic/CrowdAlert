@@ -14,6 +14,7 @@ data class IncidentEntity(
     val longitude: Double,
     val reportedBy: String?,
     val reportedByEmail: String?,
+    val reportedByName: String?,
     val createdAt: Long?,
     val isSyncedToFirestore: Boolean = true,
 )
