@@ -14,9 +14,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * Holds report form fields and submits a new incident to Firestore.
- */
 @HiltViewModel
 class ReportViewModel @Inject constructor(
     private val incidentRepository: IncidentRepository,

@@ -28,9 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.crowdalert.R
 
-/**
- * Email/password registration form. Firebase remains the sole password verifier.
- */
 @Composable
 fun RegisterRoute(
     onNavigateBack: () -> Unit,

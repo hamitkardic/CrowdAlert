@@ -1,6 +1,5 @@
 package com.example.crowdalert.data.model
 
-/** Domain model for a user-reported incident on the map. */
 data class Incident(
     val id: String,
     val title: String,
@@ -12,6 +11,5 @@ data class Incident(
     val reporterId: String? = null,
     val reporterEmail: String? = null,
     val reporterName: String? = null,
-    /** Millis since epoch from the Firestore `createdAt` field, if present. */
     val createdAtMillis: Long? = null,
 )

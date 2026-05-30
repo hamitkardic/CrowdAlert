@@ -26,9 +26,6 @@ import com.example.crowdalert.ui.report.ReportViewModel
 import com.example.crowdalert.ui.settings.AppThemeMode
 import com.example.crowdalert.ui.settings.SettingsRoute
 
-/**
- * Single-activity navigation graph: auth flow and main app shell (map + report).
- */
 @Composable
 fun CrowdAlertNavHost(
     modifier: Modifier = Modifier,

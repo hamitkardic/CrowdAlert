@@ -28,9 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.crowdalert.R
 
-/**
- * Email/password sign-in form. Passwords are forwarded only to Firebase Auth.
- */
 @Composable
 fun LoginRoute(
     onNavigateToRegister: () -> Unit,

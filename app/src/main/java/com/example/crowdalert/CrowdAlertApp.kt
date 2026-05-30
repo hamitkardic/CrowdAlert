@@ -9,10 +9,6 @@ import com.example.crowdalert.fcm.CrowdAlertMessagingService
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.HiltAndroidApp
 
-/**
- * Application class for Hilt: generates the app-wide component and enables
- * [dagger.hilt.android.AndroidEntryPoint] injection in activities and services.
- */
 @HiltAndroidApp
 class CrowdAlertApp : Application() {
     override fun onCreate() {
