@@ -16,9 +16,6 @@ import com.example.crowdalert.R
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
-/**
-  This service is mainly for foreground messages and data payload handling.
- */
 class CrowdAlertMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {

@@ -17,10 +17,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * Presents sign-in and sign-up actions; exposes whether a user session exists.
- * Passwords are never logged. Firebase performs verification in the wired implementation.
- */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,

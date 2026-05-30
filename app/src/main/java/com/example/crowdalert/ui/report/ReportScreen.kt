@@ -51,9 +51,6 @@ import com.example.crowdalert.ui.report.ReportViewModel.Severity
 import com.example.crowdalert.ui.report.ReportViewModel.SubmitState
 import kotlinx.coroutines.delay
 
-/**
- * Report form for creating Firestore incident documents.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportRoute(

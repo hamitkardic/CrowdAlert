@@ -119,9 +119,6 @@ import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
 import org.maplibre.android.style.sources.GeoJsonSource
 
-/**
- * Map screen backed by Firestore's realtime incident listener.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapRoute(
